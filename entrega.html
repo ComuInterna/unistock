@@ -8,6 +8,66 @@
 <title>UniStock — Entrega Rapida</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<!-- PWA -->
+<link rel="manifest" href="/manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="UniStock">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+
+<!-- Service Worker + NFC handler -->
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/sw.js');
+  });
+}
+
+// Pick up pending NFC navigation
+(function() {
+  try {
+    var raw = localStorage.getItem('unistock-nfc-pending');
+    if (!raw) return;
+    var data = JSON.parse(raw);
+    if (Date.now() - data.ts > 30000) {
+      localStorage.removeItem('unistock-nfc-pending');
+      return;
+    }
+    localStorage.removeItem('unistock-nfc-pending');
+    var sku    = data.sku;
+    var action = data.action || 'salida';
+    if (!sku) return;
+
+    var isOnEntrega = window.location.pathname.indexOf('entrega') !== -1;
+    var isOnIndex   = window.location.pathname.indexOf('index')   !== -1
+                   || window.location.pathname === '/';
+
+    if (action === 'salida' && !isOnEntrega) {
+      window.location.href = '/entrega.html?sku=' + encodeURIComponent(sku);
+    } else if (action === 'salida' && isOnEntrega) {
+      window.addEventListener('DOMContentLoaded', function() {
+        setTimeout(function() {
+          if (typeof loadProductBySKU === 'function') loadProductBySKU(sku.toUpperCase());
+        }, 600);
+      });
+    } else if (action === 'stock') {
+      if (!isOnIndex) {
+        window.location.href = '/index.html?view=stock&sku=' + encodeURIComponent(sku);
+      } else {
+        window.addEventListener('DOMContentLoaded', function() {
+          setTimeout(function() {
+            var el = document.getElementById('dash-search');
+            if (el) { el.value = sku; el.dispatchEvent(new Event('input')); }
+            if (typeof nav === 'function') nav('dashboard', document.querySelector('[data-page=dashboard]'));
+          }, 700);
+        });
+      }
+    }
+  } catch(e) {}
+})();
+</script>
+
 <style>
 :root {
   --bg:      #0f0e0c;

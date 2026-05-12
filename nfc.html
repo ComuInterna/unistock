@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>UniStock</title>
+<style>
+* { box-sizing:border-box; margin:0; padding:0; }
+body {
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  background:#0f0e0c; color:#f0ede8; min-height:100dvh;
+  display:flex; flex-direction:column; align-items:center;
+  justify-content:center; padding:24px; text-align:center;
+}
+.logo {
+  width:80px; height:80px; background:#181714; border-radius:20px;
+  display:flex; align-items:center; justify-content:center;
+  margin:0 auto 22px; box-shadow:0 8px 32px rgba(0,0,0,.5);
+}
+.logo svg { width:40px; height:40px; }
+h1 { font-size:22px; font-weight:700; letter-spacing:-.4px; margin-bottom:8px; }
+.sub { font-size:14px; color:#9e9b95; line-height:1.6; max-width:280px; }
+.sku-badge {
+  margin:16px auto 0; display:inline-block;
+  background:#1a1916; border:1px solid #2e2c29;
+  border-radius:8px; padding:8px 16px;
+  font-family:"SF Mono",Menlo,monospace; font-size:15px;
+  color:#d4522a; letter-spacing:.05em;
+}
+.spinner {
+  width:32px; height:32px; border:2.5px solid #2e2c29;
+  border-top-color:#d4522a; border-radius:50%;
+  animation:spin .7s linear infinite; margin:24px auto 0;
+}
+@keyframes spin { to { transform:rotate(360deg); } }
+.btn {
+  margin-top:24px; background:#d4522a; color:white;
+  border:none; padding:15px 28px; border-radius:12px;
+  font-size:15px; font-weight:600; cursor:pointer;
+  font-family:inherit; display:none; width:100%; max-width:280px;
+  -webkit-tap-highlight-color:transparent;
+}
+.btn:active { opacity:.85; }
+.install-note {
+  margin-top:16px; font-size:12px; color:#5a5854;
+  display:none; max-width:280px; line-height:1.6;
+}
+</style>
+</head>
+<body>
+  <div class="logo">
+    <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5"
+         stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 2L3 7l9 5 9-5-9-5zM3 17l9 5 9-5M3 12l9 5 9-5"/>
+    </svg>
+  </div>
+  <h1 id="title">Abriendo UniStock</h1>
+  <p class="sub" id="msg">Detectando la app...</p>
+  <div class="sku-badge" id="sku-badge" style="display:none"></div>
+  <div class="spinner" id="spinner"></div>
+  <button class="btn" id="btn-open" onclick="openManual()">
+    Abrir UniStock
+  </button>
+  <p class="install-note" id="note">
+    Para mejor experiencia: Safari → Compartir → "Agregar a pantalla de inicio"
+  </p>
+
+<script>
+(function() {
+  var params  = new URLSearchParams(window.location.search);
+  var sku     = params.get('sku')    || '';
+  var action  = params.get('action') || 'salida';
+  var base    = window.location.origin + window.location.pathname.replace(/nfc\.html.*/, '');
+  var isIOS   = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  var isStandalone = window.navigator.standalone === true;
+  var isAndroid    = /android/i.test(navigator.userAgent);
+
+  // Show SKU if present
+  if (sku) {
+    var badge = document.getElementById('sku-badge');
+    badge.textContent = sku;
+    badge.style.display = 'inline-block';
+    document.getElementById('msg').textContent =
+      action === 'stock' ? 'Consultando stock...' : 'Preparando entrega...';
+  }
+
+  // Build destination URL
+  var dest = action === 'stock'
+    ? base + 'index.html?view=stock&sku=' + encodeURIComponent(sku)
+    : base + 'entrega.html?sku='          + encodeURIComponent(sku);
+
+  // Save pending NFC action so the app picks it up on launch
+  try {
+    localStorage.setItem('unistock-nfc-pending', JSON.stringify({
+      sku: sku, action: action, ts: Date.now()
+    }));
+  } catch(e) {}
+
+  // ── iOS Standalone PWA: redirect instantly ────────────────────────────────
+  if (isStandalone) {
+    window.location.replace(dest);
+    return;
+  }
+
+  // ── Android: redirect instantly (Chrome PWA intercepts) ──────────────────
+  if (isAndroid) {
+    window.location.replace(dest);
+    return;
+  }
+
+  // ── iOS Safari (app NOT open as standalone) ───────────────────────────────
+  // Strategy: redirect to dest after brief delay.
+  // If the app is in the background/foreground, iOS will resume it.
+  // If not installed, user lands on entrega.html in Safari.
+  if (isIOS) {
+    var timer = setTimeout(function() {
+      window.location.href = dest;
+    }, 600);
+
+    // Show manual button as fallback after 2s
+    setTimeout(function() {
+      document.getElementById('spinner').style.display = 'none';
+      document.getElementById('btn-open').style.display = 'block';
+      document.getElementById('note').style.display = 'block';
+      document.getElementById('msg').textContent = 'Toca para continuar';
+      clearTimeout(timer);
+    }, 2000);
+    return;
+  }
+
+  // ── Desktop fallback ──────────────────────────────────────────────────────
+  window.location.replace(dest);
+
+  function openManual() { window.location.href = dest; }
+  window.openManual = openManual;
+})();
+</script>
+</body>
+</html>
