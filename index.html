@@ -633,8 +633,15 @@ textarea { resize:vertical; min-height:72px; }
           <span class="filter-label">Filtrar:</span>
           <input type="text" placeholder="🔍 Buscar artículo..." id="dash-search" oninput="renderDashboard()">
           <select id="dash-cat" onchange="renderDashboard()"><option value="">Todas las categorías</option></select>
+          <select id="dash-gender" onchange="renderDashboard()">
+            <option value="">Todos los géneros</option>
+            <option value="Hombre">Hombre</option>
+            <option value="Mujer">Mujer</option>
+            <option value="Unisex">Unisex</option>
+            <option value="N/A">N/A</option>
+          </select>
           <select id="dash-stock" onchange="renderDashboard()">
-            <option value="">Todo</option>
+            <option value="">Todo el stock</option>
             <option value="ok">Stock OK</option>
             <option value="low">Stock bajo</option>
             <option value="out">Sin stock</option>
@@ -648,7 +655,7 @@ textarea { resize:vertical; min-height:72px; }
       <!-- ═══ INVENTARIO ═══ -->
       <div id="page-inventario" class="page">
         <div class="sh">
-          <div><div class="sh-t">Inventario</div><div class="sh-s">Gestiona referencias y stock</div></div>
+          <div><div class="sh-t">Inventario</div><div class="sh-s">Gestiona referencias y stock · <span style="color:var(--accent)">arrastra</span> para reordenar</div></div>
           <button class="btn btn-primary" onclick="openModal('m-new-product')">
             <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             Nuevo artículo
@@ -1319,7 +1326,17 @@ function renderPage(page) {
 
 function refreshAllViews() {
   const active = document.querySelector('.page.active')?.id?.replace('page-','');
-  if (active) renderPage(active);
+  if (!active) return;
+  // For salidas/entradas: don't rebuild the product selector (loses selection)
+  // Just refresh the underlying data views and stock status
+  if (active === 'salidas') {
+    checkSalidaStock();          // re-check stock with fresh data
+    renderRecentMoves('salida'); // refresh recent list
+  } else if (active === 'entradas') {
+    renderRecentMoves('entrada');
+  } else {
+    renderPage(active);
+  }
   populateFilterSelects();
 }
 
@@ -1417,17 +1434,19 @@ function renderDashboard() {
     <div class="summary-pill pill-danger"><div class="pill-icon">🚫</div><div><div class="pill-val">${out}</div><div class="pill-lbl">Sin stock</div></div></div>
   `;
 
-  const q     = (document.getElementById('dash-search')?.value||'').toLowerCase();
-  const catF  = document.getElementById('dash-cat')?.value||'';
-  const stF   = document.getElementById('dash-stock')?.value||'';
+  const q      = (document.getElementById('dash-search')?.value||'').toLowerCase();
+  const catF   = document.getElementById('dash-cat')?.value||'';
+  const stF    = document.getElementById('dash-stock')?.value||'';
+  const genF   = document.getElementById('dash-gender')?.value||'';
 
   const filteredCats = catF ? CATS.filter(c=>c.id===catF) : CATS;
   let html = '';
 
   filteredCats.forEach(cat => {
     let prods = PRODS.filter(p => p.category_id === cat.id);
-    if (stF) prods = prods.filter(p => stockClass(p) === stF);
-    if (q)   prods = prods.filter(p => productLabel(p).toLowerCase().includes(q) || (p.sku||'').toLowerCase().includes(q));
+    if (stF)  prods = prods.filter(p => stockClass(p) === stF);
+    if (genF) prods = prods.filter(p => p.gender === genF);
+    if (q)    prods = prods.filter(p => productLabel(p).toLowerCase().includes(q) || (p.sku||'').toLowerCase().includes(q));
     if (!prods.length) return;
 
     html += `<div class="cat-section">
@@ -1459,6 +1478,24 @@ function renderDashboard() {
 }
 
 // ─── INVENTARIO ───────────────────────────────────────────────────────────────
+// Persistent display order (array of product IDs)
+let PROD_ORDER = JSON.parse(localStorage.getItem('unistock-prod-order') || '[]');
+
+function saveProdOrder() {
+  localStorage.setItem('unistock-prod-order', JSON.stringify(PROD_ORDER));
+}
+
+function getOrderedProds(prods) {
+  // Sort by PROD_ORDER, unknowns go to end
+  const orderMap = {};
+  PROD_ORDER.forEach((id, i) => orderMap[id] = i);
+  return [...prods].sort((a, b) => {
+    const ai = orderMap[a.id] ?? 99999;
+    const bi = orderMap[b.id] ?? 99999;
+    return ai - bi;
+  });
+}
+
 function renderInventario() {
   const q    = (document.getElementById('inv-q')?.value||'').toLowerCase();
   const catF = document.getElementById('inv-cat')?.value||'';
@@ -1474,25 +1511,35 @@ function renderInventario() {
     if (stF === 'out' && p.qty !== 0) return false;
     if (q) {
       const t = getType(p.type_id);
-      const c = getCat(p.category_id);
-      const str = [t?.name,p.color,p.size,p.gender,p.sku,c?.name].join(' ').toLowerCase();
+      const cc = getCat(p.category_id);
+      const str = [t?.name,p.color,p.size,p.gender,p.sku,cc?.name].join(' ').toLowerCase();
       if (!str.includes(q)) return false;
     }
     return true;
   });
+
+  // Apply persistent drag order (only when no filters active)
+  const isFiltered = q || catF || typF || genF || stF;
+  if (!isFiltered) prods = getOrderedProds(prods);
 
   if (!prods.length) {
     document.getElementById('inv-table').innerHTML = `<div class="empty"><div class="empty-icon">📦</div><h3>Sin resultados</h3><p>Ajusta los filtros</p></div>`;
     return;
   }
 
+  const isDraggable = !isFiltered;
+
   document.getElementById('inv-table').innerHTML = `
-    <table>
-      <thead><tr><th>Categoría</th><th>Tipo</th><th>Género</th><th>Talla</th><th>Color</th><th>SKU</th><th>Stock</th><th>Acciones</th></tr></thead>
-      <tbody>${prods.map(p=>{
-        const t=getType(p.type_id); const c=getCat(p.category_id);
-        return `<tr>
-          <td><span style="font-size:13px;display:inline-flex;align-items:center;gap:5px">${getCatIcon(c?.icon||'', '16px')} ${c?.name||'—'}</span></td>
+    <table id="inv-sortable-table">
+      <thead><tr>
+        ${isDraggable ? '<th style="width:28px"></th>' : ''}
+        <th>Categoría</th><th>Tipo</th><th>Género</th><th>Talla</th><th>Color</th><th>SKU</th><th>Stock</th><th>Acciones</th>
+      </tr></thead>
+      <tbody id="inv-tbody">${prods.map(p=>{
+        const t=getType(p.type_id); const cc=getCat(p.category_id);
+        return `<tr draggable="${isDraggable}" data-id="${p.id}">
+          ${isDraggable ? `<td><span class="drag-handle" title="Arrastrar para reordenar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="5" r="1" fill="currentColor"/><circle cx="9" cy="12" r="1" fill="currentColor"/><circle cx="9" cy="19" r="1" fill="currentColor"/><circle cx="15" cy="5" r="1" fill="currentColor"/><circle cx="15" cy="12" r="1" fill="currentColor"/><circle cx="15" cy="19" r="1" fill="currentColor"/></svg></span></td>` : ''}
+          <td><span style="font-size:13px;display:inline-flex;align-items:center;gap:5px">${getCatIcon(cc?.icon||'', '16px')} ${cc?.name||'—'}</span></td>
           <td><strong>${t?.name||'—'}</strong></td>
           <td><span class="badge badge-neutral">${p.gender}</span></td>
           <td><span class="badge badge-neutral">${p.size}</span></td>
@@ -1507,6 +1554,50 @@ function renderInventario() {
         </tr>`;
       }).join('')}</tbody>
     </table>`;
+
+  if (isDraggable) initDragSort();
+}
+
+// ─── DRAG & DROP SORT ─────────────────────────────────────────────────────────
+let _dragSrc = null;
+
+function initDragSort() {
+  const tbody = document.getElementById('inv-tbody');
+  if (!tbody) return;
+
+  tbody.querySelectorAll('tr[draggable]').forEach(row => {
+    row.addEventListener('dragstart', e => {
+      _dragSrc = row;
+      row.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    row.addEventListener('dragend', () => {
+      row.classList.remove('dragging');
+      tbody.querySelectorAll('tr').forEach(r => r.classList.remove('drag-over'));
+      // Save new order
+      PROD_ORDER = [...tbody.querySelectorAll('tr[data-id]')].map(r => r.dataset.id);
+      saveProdOrder();
+    });
+    row.addEventListener('dragover', e => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      tbody.querySelectorAll('tr').forEach(r => r.classList.remove('drag-over'));
+      if (row !== _dragSrc) row.classList.add('drag-over');
+    });
+    row.addEventListener('drop', e => {
+      e.preventDefault();
+      if (!_dragSrc || _dragSrc === row) return;
+      const rows = [...tbody.querySelectorAll('tr[data-id]')];
+      const srcIdx = rows.indexOf(_dragSrc);
+      const tgtIdx = rows.indexOf(row);
+      if (srcIdx < tgtIdx) {
+        row.after(_dragSrc);
+      } else {
+        row.before(_dragSrc);
+      }
+      row.classList.remove('drag-over');
+    });
+  });
 }
 
 // ─── ENTRADAS ─────────────────────────────────────────────────────────────────
