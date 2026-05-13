@@ -582,6 +582,10 @@ textarea { resize:vertical; min-height:72px; }
         <svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
         <span>Catálogo</span>
       </button>
+      <button class="nav-item" data-page="grupos" onclick="nav('grupos',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6h18M3 12h18M3 18h18"/><rect x="3" y="3" width="4" height="4" rx="1"/><rect x="3" y="9" width="4" height="4" rx="1"/><rect x="3" y="15" width="4" height="4" rx="1"/></svg>
+        <span>Grupos</span>
+      </button>
       <button class="nav-item" data-page="colaboradores" onclick="nav('colaboradores',this)">
         <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
         <span>Colaboradores</span>
@@ -646,6 +650,10 @@ textarea { resize:vertical; min-height:72px; }
             <option value="low">Stock bajo</option>
             <option value="out">Sin stock</option>
           </select>
+        </div>
+        <div id="dash-groups-summary" style="margin-bottom:20px;display:none">
+          <div class="sh-t" style="margin-bottom:12px;font-size:15px;">Grupos</div>
+          <div class="card" id="dash-groups-list" style="padding:0;overflow:hidden;border-radius:var(--r)"></div>
         </div>
         <div id="dash-content">
           <div class="page-loader"><div class="loader"></div> Cargando inventario...</div>
@@ -807,6 +815,18 @@ textarea { resize:vertical; min-height:72px; }
           </button>
         </div>
         <div class="catalog-grid" id="catalog-grid"><div class="page-loader"><div class="loader"></div></div></div>
+      </div>
+
+      <!-- ═══ GRUPOS ═══ -->
+      <div id="page-grupos" class="page">
+        <div class="sh">
+          <div><div class="sh-t">Grupos</div><div class="sh-s">Organiza artículos en colecciones personalizadas</div></div>
+          <button class="btn btn-primary" onclick="openModal('m-new-group')">
+            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Nuevo grupo
+          </button>
+        </div>
+        <div id="groups-list"></div>
       </div>
 
       <!-- ═══ COLABORADORES ═══ -->
@@ -982,7 +1002,8 @@ let CATS  = []; // categories
 let TYPES = []; // product_types
 let PRODS = []; // products
 let MOVS  = []; // movements
-let COLLS = []; // collaborators
+let COLLS  = []; // collaborators
+let GROUPS = []; // product groups
 
 const BRANCHES = [
   'CEDIS',
@@ -1153,23 +1174,25 @@ function loadScript(src) {
 
 // ─── DATA LAYER ───────────────────────────────────────────────────────────────
 async function loadAllData() {
-  const [c, t, p, m, col] = await Promise.all([
+  const [c, t, p, m, col, g] = await Promise.all([
     SB.from('categories').select('*').order('name'),
     SB.from('product_types').select('*').order('name'),
     SB.from('products').select('*').order('created_at'),
     SB.from('movements').select('*').order('created_at', { ascending:false }),
-    SB.from('collaborators').select('*').order('name')
+    SB.from('collaborators').select('*').order('name'),
+    SB.from('product_groups').select('*').order('name')
   ]);
   if (c.error)   throw new Error('Tabla "categories" no encontrada. Ejecuta primero el supabase_schema.sql en el SQL Editor de Supabase.');
   if (t.error)   throw new Error('Tabla "product_types" no encontrada. Ejecuta primero el supabase_schema.sql');
   if (p.error)   throw new Error('Tabla "products" no encontrada. Ejecuta primero el supabase_schema.sql');
   if (m.error)   throw new Error('Tabla "movements" no encontrada. Ejecuta primero el supabase_schema.sql');
   if (col.error) throw new Error('Tabla "collaborators" no encontrada. Ejecuta primero el supabase_schema.sql actualizado');
-  CATS  = c.data   || [];
-  TYPES = t.data   || [];
-  PRODS = p.data   || [];
-  MOVS  = m.data   || [];
-  COLLS = col.data || [];
+  CATS   = c.data    || [];
+  TYPES  = t.data    || [];
+  PRODS  = p.data    || [];
+  MOVS   = m.data    || [];
+  COLLS  = col.data  || [];
+  GROUPS = (g && !g.error) ? g.data || [] : [];
   populateFilterSelects();
   refreshAllViews();
 }
@@ -1253,7 +1276,7 @@ function loadLocalData() {
 
 function saveLocal() {
   if (CFG.mode === 'local') {
-    localStorage.setItem('unistock-local', JSON.stringify({ cats:CATS, types:TYPES, prods:PRODS, movs:MOVS, colls:COLLS }));
+    localStorage.setItem('unistock-local', JSON.stringify({ cats:CATS, types:TYPES, prods:PRODS, movs:MOVS, colls:COLLS, groups:GROUPS }));
   }
 }
 
@@ -1266,7 +1289,7 @@ async function dbInsert(table, row) {
     if (error) throw error;
     return data;
   }
-  const arr = { categories:CATS, product_types:TYPES, products:PRODS, movements:MOVS, collaborators:COLLS }[table];
+  const arr = { categories:CATS, product_types:TYPES, products:PRODS, movements:MOVS, collaborators:COLLS, product_groups:GROUPS }[table];
   const newRow = { id:uid(), created_at:new Date().toISOString(), ...row };
   arr.push(newRow);
   saveLocal();
@@ -1279,7 +1302,7 @@ async function dbUpdate(table, id, updates) {
     if (error) throw error;
     return;
   }
-  const arr = { categories:CATS, product_types:TYPES, products:PRODS, movements:MOVS, collaborators:COLLS }[table];
+  const arr = { categories:CATS, product_types:TYPES, products:PRODS, movements:MOVS, collaborators:COLLS, product_groups:GROUPS }[table];
   const idx = arr.findIndex(r => r.id === id);
   if (idx >= 0) Object.assign(arr[idx], updates);
   saveLocal();
@@ -1291,7 +1314,7 @@ async function dbDelete(table, id) {
     if (error) throw error;
     return;
   }
-  const map = { categories:CATS, product_types:TYPES, products:PRODS, movements:MOVS, collaborators:COLLS };
+  const map = { categories:CATS, product_types:TYPES, products:PRODS, movements:MOVS, collaborators:COLLS, product_groups:GROUPS };
   const arr = map[table];
   const idx = arr.findIndex(r => r.id === id);
   if (idx >= 0) arr.splice(idx, 1);
@@ -1301,7 +1324,7 @@ async function dbDelete(table, id) {
 // ─── NAVIGATION ───────────────────────────────────────────────────────────────
 const PAGE_TITLES = {
   dashboard:'Dashboard', inventario:'Inventario', entradas:'Entradas',
-  salidas:'Salidas', historial:'Historial', catalogo:'Catálogo', colaboradores:'Colaboradores'
+  salidas:'Salidas', historial:'Historial', catalogo:'Catálogo', colaboradores:'Colaboradores', grupos:'Grupos'
 };
 
 function nav(page, btn) {
@@ -1322,6 +1345,7 @@ function renderPage(page) {
   if (page === 'historial')  renderHistorial();
   if (page === 'catalogo')   renderCatalog();
   if (page === 'colaboradores') renderCollaborators();
+  if (page === 'grupos')        renderGroups();
 }
 
 function refreshAllViews() {
@@ -1365,12 +1389,16 @@ function populateFilterSelects() {
     ic.innerHTML = '<option value="">Todas las categorías</option>' + CATS.map(c=>`<option value="${c.id}" ${c.id===cur?'selected':''}>${c.name}</option>`).join('');
     updateInvTypeFilter();
   }
-  // New product cat
-  const np = document.getElementById('np-cat');
-  if (np) {
-    const cur = np.value;
-    np.innerHTML = '<option value="">Selecciona...</option>' + CATS.map(c=>`<option value="${c.id}" ${c.id===cur?'selected':''}>${c.name}</option>`).join('');
-    populateNpTypes();
+  // New product cat — only refresh if modal is CLOSED (avoid resetting user selection)
+  const newProdModal = document.getElementById('m-new-product');
+  const modalIsOpen  = newProdModal && newProdModal.classList.contains('open');
+  if (!modalIsOpen) {
+    const np = document.getElementById('np-cat');
+    if (np) {
+      const cur = np.value;
+      np.innerHTML = '<option value="">Selecciona...</option>' + CATS.map(c=>`<option value="${c.id}" ${c.id===cur?'selected':''}>${c.name}</option>`).join('');
+      populateNpTypes();
+    }
   }
 }
 
@@ -1387,10 +1415,14 @@ function populateNpTypes() {
   const catId = document.getElementById('np-cat')?.value || '';
   const el = document.getElementById('np-type');
   if (!el) return;
+  const cur = el.value; // preserve current selection
   const filtered = catId ? TYPES.filter(t=>t.category_id===catId) : [];
   el.innerHTML = filtered.length
-    ? filtered.map(t=>`<option value="${t.id}">${t.name}</option>`).join('')
+    ? filtered.map(t=>`<option value="${t.id}" ${t.id===cur?'selected':''}>${t.name}</option>`).join('')
     : '<option value="">Selecciona categoría primero</option>';
+  // Restore selection if still valid
+  if (cur && filtered.find(t=>t.id===cur)) el.value = cur;
+  autoGenSKU();
 }
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
@@ -1475,6 +1507,7 @@ function renderDashboard() {
   });
 
   document.getElementById('dash-content').innerHTML = html || `<div class="empty"><div class="empty-icon">🔍</div><h3>Sin resultados</h3><p>Ajusta los filtros para ver artículos</p></div>`;
+  renderDashboardGroups();
 }
 
 // ─── INVENTARIO ───────────────────────────────────────────────────────────────
@@ -2464,6 +2497,339 @@ async function deleteCollabById(id) {
     if (CFG.mode==='local') { const i=COLLS.findIndex(c=>c.id===id); if(i>=0) COLLS.splice(i,1); }
     renderCollaborators();
     toast('Colaborador eliminado');
+  } catch(e) { toast('Error: '+e.message,'t-red'); }
+}
+
+
+// ─── GROUPS ───────────────────────────────────────────────────────────────────
+let _openGroups = new Set(); // track which group cards are expanded
+let _openTallas = new Set(); // track which product rows show tallas
+
+function renderGroups() {
+  const el = document.getElementById('groups-list');
+  if (!el) return;
+
+  if (!GROUPS.length) {
+    el.innerHTML = `<div class="empty"><div class="empty-icon" style="font-size:32px;margin-bottom:10px">🗂️</div>
+      <h3>Sin grupos</h3><p>Crea tu primer grupo para organizar artículos</p></div>`;
+    return;
+  }
+
+  el.innerHTML = '<div class="groups-grid">' + GROUPS.map(g => {
+    const gProds    = PRODS.filter(p => p.group_id === g.id);
+    const totalQty  = gProds.reduce((s,p) => s+p.qty, 0);
+    const isOpen    = _openGroups.has(g.id);
+    const bgColor   = g.color || '#2a7d4f';
+
+    // Separate into paquetes (tagged) and sueltas
+    const paquetes = gProds.filter(p => p.group_type === 'paquete');
+    const sueltas  = gProds.filter(p => p.group_type !== 'paquete');
+
+    // Group sueltas by type+color for nested tallas view
+    const sueltasMap = {};
+    sueltas.forEach(p => {
+      const t   = getType(p.type_id);
+      const key = (t?.name||'?') + '|' + p.color;
+      if (!sueltasMap[key]) sueltasMap[key] = { name:(t?.name||'?'), color:p.color, items:[] };
+      sueltasMap[key].items.push(p);
+    });
+
+    const paquetesHTML = paquetes.length ? `
+      <div class="group-section">
+        <div class="group-section-hd">
+          Paquetes <span class="group-total-pill">${paquetes.length}</span>
+        </div>
+        ${paquetes.map(p => {
+          const t = getType(p.type_id);
+          return `<div class="group-item">
+            <div class="group-item-left">
+              <div>
+                <div class="group-item-name">${t?.name||'?'} ${p.color}</div>
+                <div class="group-item-meta">Talla ${p.size} · ${p.sku||'—'}</div>
+              </div>
+            </div>
+            <div class="group-item-stock">
+              ${stockPill(p)}
+              <button class="btn btn-secondary btn-sm" onclick="openEditStock('${p.id}')">Stock</button>
+              <button class="btn btn-ghost btn-sm btn-icon" onclick="removeFromGroup('${p.id}')" title="Quitar del grupo" style="color:var(--text3)">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>` : '';
+
+    const sueltasHTML = Object.keys(sueltasMap).length ? `
+      <div class="group-section">
+        <div class="group-section-hd">
+          Sueltas <span class="group-total-pill">${sueltas.length}</span>
+        </div>
+        ${Object.entries(sueltasMap).map(([key, data]) => {
+          const isT = _openTallas.has(g.id + '|' + key);
+          const subTotal = data.items.reduce((s,p)=>s+p.qty,0);
+          const anyLow   = data.items.some(p=>stockClass(p)==='low');
+          const anyOut   = data.items.some(p=>stockClass(p)==='out');
+          const pillCls  = anyOut?'sp-out':anyLow?'sp-low':'sp-ok';
+          return `<div>
+            <div class="group-item" onclick="toggleTallas('${g.id}','${key.replace(/'/g,"\'")}')">
+              <div class="group-item-left">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  style="transition:transform .2s;transform:rotate(${isT?'90':'0'}deg);color:var(--text3)">
+                  <polyline points="9 18 15 12 9 6"/>
+                </svg>
+                <div>
+                  <div class="group-item-name">${data.name} <span style="color:var(--text3)">${data.color}</span></div>
+                  <div class="group-item-meta">${data.items.length} tallas</div>
+                </div>
+              </div>
+              <div class="group-item-stock">
+                <span class="stock-pill ${pillCls}">${subTotal} uds</span>
+              </div>
+            </div>
+            <div class="tallas-panel ${isT?'open':''}">
+              ${data.items.map(p => `
+                <div class="talla-row">
+                  <div class="talla-name">
+                    <span class="badge badge-neutral">${p.size}</span>
+                    <span style="font-family:var(--mono);font-size:12px;color:var(--text3)">${p.sku||'—'}</span>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:8px">
+                    ${stockPill(p)}
+                    <button class="btn btn-secondary btn-sm" onclick="openEditStock('${p.id}')">Stock</button>
+                    <button class="btn btn-ghost btn-sm btn-icon" onclick="removeFromGroup('${p.id}')" style="color:var(--text3)">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                  </div>
+                </div>`).join('')}
+            </div>
+          </div>`;
+        }).join('')}
+      </div>` : '';
+
+    return `<div class="group-card" id="group-card-${g.id}">
+      <div class="group-header" onclick="toggleGroup('${g.id}')">
+        <div class="group-title-row">
+          <div class="group-icon" style="background:${bgColor}20;color:${bgColor}">${g.icon||'🗂️'}</div>
+          <div>
+            <div class="group-name">${g.name}</div>
+            <div class="group-meta">${gProds.length} artículos · ${totalQty} uds</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();openAssignGroup('${g.id}')" title="Agregar artículos">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+          <button class="btn btn-ghost btn-sm btn-icon" onclick="event.stopPropagation();openEditGroup('${g.id}')" title="Editar grupo">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4z"/></svg>
+          </button>
+          <svg class="group-chevron ${isOpen?'open':''}" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </div>
+      </div>
+      <div class="group-body ${isOpen?'open':''}">
+        ${paquetesHTML}
+        ${sueltasHTML}
+        ${!paquetesHTML && !sueltasHTML ? '<div class="group-empty">Sin artículos — toca + para agregar</div>' : ''}
+      </div>
+    </div>`;
+  }).join('') + '</div>';
+
+  // Update dashboard groups too
+  renderDashboardGroups();
+}
+
+function toggleGroup(id) {
+  if (_openGroups.has(id)) _openGroups.delete(id);
+  else _openGroups.add(id);
+  renderGroups();
+}
+
+function toggleTallas(groupId, key) {
+  const k = groupId + '|' + key;
+  if (_openTallas.has(k)) _openTallas.delete(k);
+  else _openTallas.add(k);
+  renderGroups();
+}
+
+function renderDashboardGroups() {
+  const wrap = document.getElementById('dash-groups-summary');
+  const list = document.getElementById('dash-groups-list');
+  if (!wrap || !list) return;
+
+  const groupsWithProds = GROUPS.filter(g => PRODS.some(p => p.group_id === g.id));
+  if (!groupsWithProds.length) { wrap.style.display = 'none'; return; }
+
+  wrap.style.display = 'block';
+  list.innerHTML = groupsWithProds.map(g => {
+    const gProds   = PRODS.filter(p => p.group_id === g.id);
+    const total    = gProds.reduce((s,p)=>s+p.qty,0);
+    const hasLow   = gProds.some(p=>stockClass(p)==='low');
+    const hasOut   = gProds.some(p=>stockClass(p)==='out');
+    const bg       = g.color||'#2a7d4f';
+    const badge    = hasOut?'sp-out':hasLow?'sp-low':'sp-ok';
+    return `<div class="dash-group-row" onclick="nav('grupos',document.querySelector('[data-page=grupos]'))">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:28px;height:28px;border-radius:7px;background:${bg}20;color:${bg};display:flex;align-items:center;justify-content:center;font-size:14px">${g.icon||'🗂️'}</div>
+        <div>
+          <div class="dash-group-name">${g.name}</div>
+          <div class="dash-group-sub">${gProds.length} artículos</div>
+        </div>
+      </div>
+      <span class="stock-pill ${badge}">${total} uds</span>
+    </div>`;
+  }).join('');
+}
+
+// ─── GROUP CRUD ───────────────────────────────────────────────────────────────
+async function saveNewGroup() {
+  const name  = document.getElementById('ng-name').value.trim();
+  const icon  = document.getElementById('ng-icon').value.trim() || '🗂️';
+  const color = document.getElementById('ng-color').value;
+  if (!name) { toast('Ingresa un nombre para el grupo','t-red'); return; }
+  try {
+    const row = await dbInsert('product_groups', { name, icon, color });
+    if (CFG.mode==='local') GROUPS.push(row);
+    closeModal('m-new-group');
+    document.getElementById('ng-name').value = '';
+    document.getElementById('ng-icon').value = '';
+    renderGroups();
+    toast('Grupo "'+name+'" creado','t-green');
+  } catch(e) { toast('Error: '+e.message,'t-red'); }
+}
+
+function openEditGroup(id) {
+  const g = GROUPS.find(x=>x.id===id);
+  if (!g) return;
+  document.getElementById('eg-id').value    = id;
+  document.getElementById('eg-name').value  = g.name;
+  document.getElementById('eg-icon').value  = g.icon||'';
+  document.getElementById('eg-color').value = g.color||'#2a7d4f';
+  openModal('m-edit-group');
+}
+
+async function saveEditGroup() {
+  const id    = document.getElementById('eg-id').value;
+  const name  = document.getElementById('eg-name').value.trim();
+  const icon  = document.getElementById('eg-icon').value.trim()||'🗂️';
+  const color = document.getElementById('eg-color').value;
+  if (!name) { toast('Nombre requerido','t-red'); return; }
+  try {
+    await dbUpdate('product_groups', id, { name, icon, color });
+    const g = GROUPS.find(x=>x.id===id);
+    if (CFG.mode==='local' && g) { g.name=name; g.icon=icon; g.color=color; }
+    closeModal('m-edit-group');
+    renderGroups();
+    toast('Grupo actualizado','t-green');
+  } catch(e) { toast('Error: '+e.message,'t-red'); }
+}
+
+async function deleteGroup() {
+  const id = document.getElementById('eg-id').value;
+  const g  = GROUPS.find(x=>x.id===id);
+  if (!confirm('¿Eliminar grupo "' + (g?g.name:id) + '"? Los artículos NO se eliminan, solo se desasignan.')) return;
+  try {
+    // Unassign all products from this group
+    const gProds = PRODS.filter(p => p.group_id === id);
+    for (const p of gProds) {
+      await dbUpdate('products', p.id, { group_id: null, group_type: null });
+      if (CFG.mode==='local') { p.group_id=null; p.group_type=null; }
+    }
+    await dbDelete('product_groups', id);
+    if (CFG.mode==='local') { const i=GROUPS.findIndex(x=>x.id===id); if(i>=0) GROUPS.splice(i,1); }
+    closeModal('m-edit-group');
+    renderGroups();
+    toast('Grupo eliminado');
+  } catch(e) { toast('Error: '+e.message,'t-red'); }
+}
+
+// ─── ASSIGN PRODUCTS TO GROUP ─────────────────────────────────────────────────
+let _assigningGroupId = null;
+
+function openAssignGroup(groupId) {
+  _assigningGroupId = groupId;
+  const g = GROUPS.find(x=>x.id===groupId);
+  document.getElementById('assign-group-sub').textContent = g ? g.name : '';
+  document.getElementById('assign-search').value = '';
+  renderAssignList();
+  openModal('m-assign-group');
+}
+
+function renderAssignList() {
+  const el = document.getElementById('assign-list');
+  if (!el) return;
+  const q = (document.getElementById('assign-search')?.value||'').toLowerCase();
+  // Show unassigned products + products already in this group
+  const prods = PRODS.filter(p => {
+    const inThisGroup  = p.group_id === _assigningGroupId;
+    const unassigned   = !p.group_id;
+    if (!inThisGroup && !unassigned) return false;
+    if (q) {
+      const t  = getType(p.type_id);
+      const cc = getCat(p.category_id);
+      const s  = [t?.name,p.color,p.size,p.gender,p.sku,cc?.name].join(' ').toLowerCase();
+      if (!s.includes(q)) return false;
+    }
+    return true;
+  });
+
+  if (!prods.length) {
+    el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3);font-size:13px">Sin artículos disponibles para agregar</div>';
+    return;
+  }
+
+  el.innerHTML = prods.map(p => {
+    const t = getType(p.type_id);
+    const inGroup = p.group_id === _assigningGroupId;
+    const isPackage = p.group_type === 'paquete';
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border)">
+      <div>
+        <div style="font-size:13.5px;font-weight:500">${t?.name||'?'} ${p.color} — Talla ${p.size}</div>
+        <div style="font-size:11.5px;color:var(--text3);font-family:var(--mono)">${p.sku||'—'} · ${stockPill(p)}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+        ${inGroup ? `
+          <select style="font-size:12px;padding:4px 8px" onchange="changeGroupType('${p.id}',this.value)">
+            <option value="suelta"  ${!isPackage?'selected':''}>Suelta</option>
+            <option value="paquete" ${isPackage?'selected':''}> Paquete</option>
+          </select>
+          <button class="btn btn-red btn-sm" onclick="removeFromGroup('${p.id}');renderAssignList()">Quitar</button>
+        ` : `
+          <button class="btn btn-secondary btn-sm" onclick="assignToGroup('${p.id}','suelta')">+ Suelta</button>
+          <button class="btn btn-secondary btn-sm" onclick="assignToGroup('${p.id}','paquete')">+ Paquete</button>
+        `}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function assignToGroup(prodId, type) {
+  try {
+    await dbUpdate('products', prodId, { group_id: _assigningGroupId, group_type: type });
+    const p = getProd(prodId);
+    if (CFG.mode==='local' && p) { p.group_id=_assigningGroupId; p.group_type=type; }
+    renderAssignList();
+    renderGroups();
+    toast('Artículo agregado al grupo','t-green');
+  } catch(e) { toast('Error: '+e.message,'t-red'); }
+}
+
+async function removeFromGroup(prodId) {
+  try {
+    await dbUpdate('products', prodId, { group_id: null, group_type: null });
+    const p = getProd(prodId);
+    if (CFG.mode==='local' && p) { p.group_id=null; p.group_type=null; }
+    renderGroups();
+    toast('Artículo removido del grupo');
+  } catch(e) { toast('Error: '+e.message,'t-red'); }
+}
+
+async function changeGroupType(prodId, type) {
+  try {
+    await dbUpdate('products', prodId, { group_type: type });
+    const p = getProd(prodId);
+    if (CFG.mode==='local' && p) p.group_type = type;
+    renderGroups();
   } catch(e) { toast('Error: '+e.message,'t-red'); }
 }
 
