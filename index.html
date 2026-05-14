@@ -545,6 +545,32 @@ tbody tr[draggable] { cursor:grab; } tbody tr[draggable]:active { cursor:grabbin
 }
 .color-btn.all-btn.active { background:var(--primary); color:white; }
 
+
+/* ── MULTI-TALLA ── */
+.mt-mode-toggle { display:flex; gap:6px; margin-bottom:6px; }
+.mt-mode-btn { padding:5px 14px; border-radius:20px; border:1.5px solid var(--border); background:var(--surface); font-size:12.5px; font-weight:500; cursor:pointer; font-family:var(--font); color:var(--text2); transition:all .15s; }
+.mt-mode-btn.active { background:var(--primary); color:white; border-color:var(--primary); }
+.mt-chips-wrap { display:none; flex-direction:column; gap:8px; }
+.mt-chips-wrap.visible { display:flex; }
+.mt-preset-row { display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+.mt-preset-btn { padding:4px 11px; border-radius:6px; border:1px solid var(--border); background:var(--bg); font-size:12px; cursor:pointer; font-family:var(--font); color:var(--text2); transition:all .12s; }
+.mt-preset-btn:hover { border-color:var(--border2); color:var(--text); }
+.mt-talla-chips { display:flex; flex-wrap:wrap; gap:6px; padding:8px 10px; border:1.5px solid var(--border); border-radius:var(--r2); min-height:42px; background:var(--surface); cursor:text; transition:border .15s; align-items:center; }
+.mt-talla-chips:focus-within { border-color:var(--primary); box-shadow:0 0 0 3px rgba(24,23,20,.07); }
+.mt-chip { display:inline-flex; align-items:center; gap:5px; background:var(--primary); color:white; border-radius:20px; padding:3px 4px 3px 10px; font-size:12.5px; font-weight:600; font-family:var(--mono); animation:fadeIn .12s; }
+.mt-chip-remove { width:16px; height:16px; border-radius:50%; background:rgba(255,255,255,.25); border:none; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; color:white; font-size:11px; padding:0; line-height:1; transition:background .1s; }
+.mt-chip-remove:hover { background:rgba(255,255,255,.45); }
+.mt-chip-input { border:none; outline:none; font-family:var(--mono); font-size:13px; background:transparent; color:var(--text); min-width:80px; flex:1; padding:2px 4px; text-transform:uppercase; }
+.mt-chip-input::placeholder { color:var(--text3); font-family:var(--font); text-transform:none; }
+.mt-preview { background:var(--bg); border:1px solid var(--border); border-radius:var(--r2); padding:12px; display:none; margin-top:4px; }
+.mt-preview.visible { display:block; }
+.mt-preview-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--text3); margin-bottom:8px; }
+.mt-preview-chips { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
+.mt-preview-chip { display:inline-flex; align-items:center; gap:6px; background:var(--surface); border:1px solid var(--border); border-radius:var(--r2); padding:5px 10px; font-size:12px; font-family:var(--mono); }
+.mt-preview-sku { color:var(--text3); font-size:11px; }
+.mt-stock-row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; border-top:1px solid var(--border); padding-top:10px; }
+.mt-stock-label { font-size:12.5px; color:var(--text2); white-space:nowrap; }
+
 </style>
 </head>
 <body>
@@ -928,16 +954,47 @@ tbody tr[draggable] { cursor:grab; } tbody tr[draggable]:active { cursor:grabbin
       </div>
       <div class="fg full">
         <label>Tipo de artículo *</label>
-        <select id="np-type" onchange="autoGenSKU()"><option value="">Primero selecciona categoría</option></select>
+        <select id="np-type" onchange="autoGenSKU(); if(typeof _tallaMode!=='undefined'&&_tallaMode==='multi') updateMtPreview()"><option value="">Primero selecciona categoría</option></select>
       </div>
       <div class="fg"><label>Género</label>
         <select id="np-gender"><option>Unisex</option><option>Hombre</option><option>Mujer</option><option>N/A</option></select>
       </div>
-      <div class="fg"><label>Talla *</label>
-        <input type="text" id="np-size" placeholder="S, M, L, 28, Único..." oninput="autoGenSKU()">
-      </div>
-      <div class="fg"><label>Color *</label><input type="text" id="np-color" placeholder="Negro, Azul..." oninput="autoGenSKU()"></div>
       <div class="fg full">
+        <label>Talla * <span style="font-weight:400;color:var(--text3);font-size:11px">— elige modo</span></label>
+        <div class="mt-mode-toggle">
+          <button type="button" class="mt-mode-btn active" id="mt-btn-single" onclick="setTallaMode('single')">Talla única</button>
+          <button type="button" class="mt-mode-btn" id="mt-btn-multi" onclick="setTallaMode('multi')">Multi-talla</button>
+        </div>
+        <input type="text" id="np-size" placeholder="S, M, L, 28, Único..." oninput="autoGenSKU()">
+        <div class="mt-chips-wrap" id="mt-chips-wrap">
+          <div class="mt-preset-row">
+            <span style="font-size:11px;color:var(--text3)">Presets:</span>
+            <button type="button" class="mt-preset-btn" onclick="addPreset(['XS','S','M','L','XL','XXL'])">XS–XXL</button>
+            <button type="button" class="mt-preset-btn" onclick="addPreset(['S','M','L','XL','XXL'])">S–XXL</button>
+            <button type="button" class="mt-preset-btn" onclick="addPreset(['S','M','L','XL'])">S–XL</button>
+            <button type="button" class="mt-preset-btn" onclick="addPreset(['28','30','32','34','36','38','40'])">28–40</button>
+            <button type="button" class="mt-preset-btn" onclick="addPreset(['34','36','38','40','42','44'])">34–44</button>
+            <button type="button" class="mt-preset-btn" onclick="clearTallas()" style="color:var(--red)">Limpiar</button>
+          </div>
+          <div class="mt-talla-chips" id="mt-chips-box" onclick="document.getElementById('mt-chip-input').focus()">
+            <div id="mt-chips"></div>
+            <input type="text" id="mt-chip-input" class="mt-chip-input"
+              placeholder="Escribe talla y presiona Enter..."
+              onkeydown="handleTallaKey(event)"
+              oninput="this.value=this.value.toUpperCase()">
+          </div>
+          <div class="mt-preview" id="mt-preview">
+            <div class="mt-preview-title">Artículos que se crearán</div>
+            <div class="mt-preview-chips" id="mt-preview-chips"></div>
+            <div class="mt-stock-row">
+              <span class="mt-stock-label">Stock inicial por talla:</span>
+              <input type="number" id="mt-qty-each" min="0" value="0" style="width:80px" oninput="updateMtPreview()">
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="fg"><label>Color *</label><input type="text" id="np-color" placeholder="Negro, Azul..." oninput="autoGenSKU(); if(typeof _tallaMode!=='undefined'&&_tallaMode==='multi') updateMtPreview()"></div>
+      <div class="fg full" id="np-sku-wrap">
         <label>SKU <span style="font-weight:400;color:var(--text3);font-size:11px;">(generado automáticamente · editable)</span></label>
         <div style="position:relative;">
           <input type="text" id="np-sku" placeholder="Se genera al llenar tipo, color y talla..." 
@@ -948,7 +1005,7 @@ tbody tr[draggable] { cursor:grab; } tbody tr[draggable]:active { cursor:grabbin
         </div>
         <div id="np-sku-hint" style="font-size:11.5px;color:var(--text3);margin-top:5px;min-height:16px;"></div>
       </div>
-      <div class="fg"><label>Stock inicial</label><input type="number" id="np-qty" value="0" min="0"></div>
+      <div class="fg" id="np-qty-wrap"><label>Stock inicial</label><input type="number" id="np-qty" value="0" min="0"></div>
       <div class="fg"><label>Alerta stock bajo</label><input type="number" id="np-low" value="5" min="1"></div>
       <div class="fg">
         <label>Grupo <span style="font-weight:400;color:var(--text3);font-size:11px">(opcional)</span></label>
@@ -2358,6 +2415,123 @@ function resetSkuState() {
   _skuManual=false;
   var s=document.getElementById('np-sku'), st=document.getElementById('np-sku-status'), sh=document.getElementById('np-sku-hint');
   if(s) s.value=''; if(st) st.textContent=''; if(sh) sh.textContent='';
+  if (typeof resetMtState === 'function') resetMtState();
+}
+
+
+// ─── MULTI-TALLA SELECTOR ─────────────────────────────────────────────────────
+let _tallaMode      = 'single';
+let _selectedTallas = [];
+
+function setTallaMode(mode) {
+  _tallaMode = mode;
+  document.getElementById('mt-btn-single').classList.toggle('active', mode==='single');
+  document.getElementById('mt-btn-multi').classList.toggle('active',  mode==='multi');
+  const singleEl = document.getElementById('np-size');
+  const multiWrap= document.getElementById('mt-chips-wrap');
+  const skuWrap  = document.getElementById('np-sku-wrap');
+  const qtyWrap  = document.getElementById('np-qty-wrap');
+  if (mode === 'single') {
+    if (singleEl) singleEl.style.display = '';
+    multiWrap.classList.remove('visible');
+    if (skuWrap) skuWrap.style.display = '';
+    if (qtyWrap) qtyWrap.style.display = '';
+    autoGenSKU();
+  } else {
+    if (singleEl) singleEl.style.display = 'none';
+    multiWrap.classList.add('visible');
+    if (skuWrap) skuWrap.style.display = 'none';
+    if (qtyWrap) qtyWrap.style.display = 'none';
+    updateMtPreview();
+    setTimeout(() => document.getElementById('mt-chip-input')?.focus(), 50);
+  }
+}
+
+function handleTallaKey(e) {
+  const val = e.target.value.trim().toUpperCase();
+  if ((e.key === 'Enter' || e.key === ',') && val) {
+    e.preventDefault();
+    addTalla(val);
+    e.target.value = '';
+  } else if (e.key === 'Backspace' && !val && _selectedTallas.length) {
+    removeTalla(_selectedTallas[_selectedTallas.length - 1]);
+  }
+}
+
+function addTalla(talla) {
+  if (!talla || _selectedTallas.includes(talla)) return;
+  _selectedTallas.push(talla);
+  renderTallaChips();
+  updateMtPreview();
+}
+
+function removeTalla(talla) {
+  _selectedTallas = _selectedTallas.filter(t => t !== talla);
+  renderTallaChips();
+  updateMtPreview();
+}
+
+function clearTallas() {
+  _selectedTallas = [];
+  renderTallaChips();
+  updateMtPreview();
+}
+
+function addPreset(tallas) {
+  tallas.forEach(t => { if (!_selectedTallas.includes(t)) _selectedTallas.push(t); });
+  renderTallaChips();
+  updateMtPreview();
+}
+
+function renderTallaChips() {
+  const box = document.getElementById('mt-chips');
+  if (!box) return;
+  box.innerHTML = _selectedTallas.map(t =>
+    `<span class="mt-chip">${t}<button type="button" class="mt-chip-remove" onclick="removeTalla('${t}')">✕</button></span>`
+  ).join('');
+  const inp = document.getElementById('mt-chip-input');
+  if (inp) inp.placeholder = _selectedTallas.length ? 'Agregar más...' : 'Escribe talla y presiona Enter...';
+}
+
+function updateMtPreview() {
+  const preview = document.getElementById('mt-preview');
+  const chips   = document.getElementById('mt-preview-chips');
+  if (!preview || !chips) return;
+  if (!_selectedTallas.length) { preview.classList.remove('visible'); return; }
+  const color  = (document.getElementById('np-color')?.value || '').trim();
+  const typeId = document.getElementById('np-type')?.value || '';
+  const type   = getType(typeId);
+  const qty    = parseInt(document.getElementById('mt-qty-each')?.value) || 0;
+  preview.classList.add('visible');
+  chips.innerHTML = _selectedTallas.map(talla => {
+    const base = buildSkuCandidate(type?.name||'', color, talla);
+    const sku  = generateUniqueSKU(base);
+    return `<div class="mt-preview-chip">
+      <span style="font-weight:600">${talla}</span>
+      <span class="mt-preview-sku">${sku}</span>
+      ${qty > 0 ? `<span style="color:var(--green);font-size:11px;font-weight:600">+${qty}</span>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function resetMtState() {
+  _tallaMode      = 'single';
+  _selectedTallas = [];
+  renderTallaChips();
+  const preview = document.getElementById('mt-preview');
+  if (preview) preview.classList.remove('visible');
+  const btn1 = document.getElementById('mt-btn-single');
+  const btn2 = document.getElementById('mt-btn-multi');
+  if (btn1) btn1.classList.add('active');
+  if (btn2) btn2.classList.remove('active');
+  const singleEl = document.getElementById('np-size');
+  const multiWrap= document.getElementById('mt-chips-wrap');
+  const skuWrap  = document.getElementById('np-sku-wrap');
+  const qtyWrap  = document.getElementById('np-qty-wrap');
+  if (singleEl) singleEl.style.display = '';
+  if (multiWrap) multiWrap.classList.remove('visible');
+  if (skuWrap)  skuWrap.style.display  = '';
+  if (qtyWrap)  qtyWrap.style.display  = '';
 }
 
 // ─── NEW PRODUCT ──────────────────────────────────────────────────────────────
@@ -2365,39 +2539,75 @@ async function saveNewProduct() {
   const cat_id  = document.getElementById('np-cat').value;
   const type_id = document.getElementById('np-type').value;
   const gender  = document.getElementById('np-gender').value;
-  const size    = document.getElementById('np-size').value.trim();
   const color   = document.getElementById('np-color').value.trim();
-  const sku     = document.getElementById('np-sku').value.trim().toUpperCase();
-  const qty     = parseInt(document.getElementById('np-qty').value)||0;
   const low     = parseInt(document.getElementById('np-low').value)||5;
-
-  if (!cat_id||!type_id||!size||!color) { toast('Completa los campos obligatorios','t-red'); return; }
-  if (!sku) { toast('Completa tipo, color y talla para generar el SKU','t-red'); return; }
-  // Final duplicate check (in case user edited manually)
-  const duplicate = PRODS.find(p => p.sku && p.sku.toUpperCase() === sku.toUpperCase());
-  if (duplicate) {
-    toast('SKU duplicado — editando para hacerlo único...', 't-amber');
-    const unique = generateUniqueSKU(sku.toUpperCase());
-    document.getElementById('np-sku').value = unique;
-    return;
-  }
   const group_id   = document.getElementById('np-group')?.value || null;
   const group_type = group_id ? (document.getElementById('np-group-type')?.value || 'suelta') : null;
+
+  if (!cat_id||!type_id||!color) { toast('Completa categoría, tipo y color','t-red'); return; }
+
+  // ── MULTI-TALLA ──────────────────────────────────────────────
+  if (_tallaMode === 'multi') {
+    if (!_selectedTallas.length) { toast('Agrega al menos una talla','t-red'); return; }
+    const qty     = parseInt(document.getElementById('mt-qty-each')?.value)||0;
+    const created = [];
+    const errors  = [];
+    for (const talla of _selectedTallas) {
+      const base = buildSkuCandidate(getType(type_id)?.name||'', color, talla);
+      const sku  = generateUniqueSKU(base);
+      try {
+        const row = await dbInsert('products', {
+          category_id:cat_id, type_id, gender, size:talla, color, sku, qty,
+          low_stock_threshold:low,
+          group_id: group_id||null, group_type: group_type||null
+        });
+        if (CFG.mode==='local') PRODS.push(row);
+        if (qty > 0) {
+          const mv = await dbInsert('movements',{type:'entrada',product_id:row.id,qty,
+            date:new Date().toISOString().slice(0,10),person:'—',branch:'—',comment:'Stock inicial'});
+          if (CFG.mode==='local') MOVS.unshift(mv);
+        }
+        created.push(talla);
+      } catch(e) { errors.push(talla); }
+    }
+    closeModal('m-new-product');
+    if (created.length) toast(`${created.length} artículos creados: ${created.join(', ')}`,'t-green');
+    if (errors.length)  toast(`Error en tallas: ${errors.join(', ')}`,'t-red');
+    renderInventario(); renderDashboard(); populateFilterSelects();
+    if (group_id) renderGroups();
+    return;
+  }
+
+  // ── TALLA ÚNICA ──────────────────────────────────────────────
+  const size = document.getElementById('np-size').value.trim();
+  const sku  = document.getElementById('np-sku').value.trim().toUpperCase();
+  const qty  = parseInt(document.getElementById('np-qty').value)||0;
+
+  if (!size) { toast('Ingresa la talla','t-red'); return; }
+  if (!sku)  { toast('Completa tipo, color y talla para generar el SKU','t-red'); return; }
+
+  const duplicate = PRODS.find(p => p.sku && p.sku.toUpperCase() === sku.toUpperCase());
+  if (duplicate) {
+    toast('SKU duplicado — se ajustará automáticamente', 't-amber');
+    document.getElementById('np-sku').value = generateUniqueSKU(sku);
+    return;
+  }
   try {
     const row = await dbInsert('products', {
       category_id:cat_id, type_id, gender, size, color, sku, qty,
       low_stock_threshold:low,
-      group_id: group_id || null,
-      group_type: group_type || null
+      group_id: group_id||null, group_type: group_type||null
     });
     if (CFG.mode==='local') PRODS.push(row);
     if (qty > 0) {
-      const mv = await dbInsert('movements',{type:'entrada',product_id:row.id,qty,date:new Date().toISOString().slice(0,10),person:'—',branch:'—',comment:'Stock inicial'});
+      const mv = await dbInsert('movements',{type:'entrada',product_id:row.id,qty,
+        date:new Date().toISOString().slice(0,10),person:'—',branch:'—',comment:'Stock inicial'});
       if (CFG.mode==='local') MOVS.unshift(mv);
     }
     closeModal('m-new-product');
     toast(`Artículo "${getType(type_id)?.name} ${color} — ${size}" creado`,'t-green');
     renderInventario(); renderDashboard(); populateFilterSelects();
+    if (group_id) renderGroups();
   } catch(e) { toast('Error: '+e.message,'t-red'); }
 }
 
