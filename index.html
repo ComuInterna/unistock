@@ -528,6 +528,23 @@ tbody tr[draggable] { cursor:grab; } tbody tr[draggable]:active { cursor:grabbin
 .drag-handle { display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px; color:var(--text3); cursor:grab; border-radius:4px; transition:color .15s; }
 .drag-handle:hover { color:var(--text); }
 .drag-handle svg { width:14px; height:14px; pointer-events:none; }
+
+/* ── COLOR FILTER BUTTONS ── */
+.color-filters {
+  display:flex; flex-wrap:wrap; gap:7px; margin-bottom:14px; align-items:center;
+}
+.color-filter-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--text3); margin-right:4px; }
+.color-btn {
+  padding:5px 14px; border-radius:20px; border:1.5px solid var(--border);
+  background:var(--surface); font-size:12.5px; font-weight:500; cursor:pointer;
+  font-family:var(--font); color:var(--text2); transition:all .15s; white-space:nowrap;
+}
+.color-btn:hover { border-color:var(--border2); color:var(--text); background:var(--bg); }
+.color-btn.active {
+  background:var(--primary); color:white; border-color:var(--primary);
+}
+.color-btn.all-btn.active { background:var(--primary); color:white; }
+
 </style>
 </head>
 <body>
@@ -933,6 +950,17 @@ tbody tr[draggable] { cursor:grab; } tbody tr[draggable]:active { cursor:grabbin
       </div>
       <div class="fg"><label>Stock inicial</label><input type="number" id="np-qty" value="0" min="0"></div>
       <div class="fg"><label>Alerta stock bajo</label><input type="number" id="np-low" value="5" min="1"></div>
+      <div class="fg">
+        <label>Grupo <span style="font-weight:400;color:var(--text3);font-size:11px">(opcional)</span></label>
+        <select id="np-group"><option value="">Sin grupo</option></select>
+      </div>
+      <div class="fg">
+        <label>Tipo dentro del grupo</label>
+        <select id="np-group-type">
+          <option value="suelta">Suelta (individual)</option>
+          <option value="paquete">Paquete</option>
+        </select>
+      </div>
     </div>
     <div class="modal-ft">
       <button class="btn btn-secondary" onclick="closeModal('m-new-product')">Cancelar</button>
@@ -957,6 +985,17 @@ tbody tr[draggable] { cursor:grab; } tbody tr[draggable]:active { cursor:grabbin
       <div class="fg"><label>Alerta stock bajo</label><input type="number" id="ep-low" min="1"></div>
       <div class="fg"><label>Género</label>
         <select id="ep-gender"><option>Unisex</option><option>Hombre</option><option>Mujer</option><option>N/A</option></select>
+      </div>
+      <div class="fg">
+        <label>Grupo <span style="font-weight:400;color:var(--text3);font-size:11px">(opcional)</span></label>
+        <select id="ep-group"><option value="">Sin grupo</option></select>
+      </div>
+      <div class="fg">
+        <label>Tipo dentro del grupo</label>
+        <select id="ep-group-type">
+          <option value="suelta">Suelta (individual)</option>
+          <option value="paquete">Paquete</option>
+        </select>
       </div>
     </div>
     <div class="modal-ft">
@@ -1508,7 +1547,15 @@ function populateFilterSelects() {
       np.innerHTML = '<option value="">Selecciona...</option>' + CATS.map(c=>`<option value="${c.id}" ${c.id===cur?'selected':''}>${c.name}</option>`).join('');
       populateNpTypes();
     }
+    populateGroupSelect('np-group', '');
   }
+}
+
+function populateGroupSelect(elId, currentGroupId) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  el.innerHTML = '<option value="">Sin grupo</option>' +
+    GROUPS.map(g => `<option value="${g.id}" ${g.id===currentGroupId?'selected':''}>${g.icon||'🗂️'} ${g.name}</option>`).join('');
 }
 
 function updateInvTypeFilter() {
@@ -2334,10 +2381,14 @@ async function saveNewProduct() {
     document.getElementById('np-sku').value = unique;
     return;
   }
+  const group_id   = document.getElementById('np-group')?.value || null;
+  const group_type = group_id ? (document.getElementById('np-group-type')?.value || 'suelta') : null;
   try {
     const row = await dbInsert('products', {
       category_id:cat_id, type_id, gender, size, color, sku, qty,
-      low_stock_threshold:low
+      low_stock_threshold:low,
+      group_id: group_id || null,
+      group_type: group_type || null
     });
     if (CFG.mode==='local') PRODS.push(row);
     if (qty > 0) {
@@ -2353,7 +2404,7 @@ async function saveNewProduct() {
 // ─── EDIT PRODUCT ─────────────────────────────────────────────────────────────
 function openEditProduct(id) {
   const p = getProd(id);
-  document.getElementById('ep-id').value   = p.id;
+  document.getElementById('ep-id').value    = p.id;
   document.getElementById('ep-sub').textContent = productLabel(p);
   document.getElementById('ep-size').value  = p.size;
   document.getElementById('ep-color').value = p.color;
@@ -2361,6 +2412,9 @@ function openEditProduct(id) {
   document.getElementById('ep-qty').value   = p.qty;
   document.getElementById('ep-low').value   = p.low_stock_threshold||5;
   document.getElementById('ep-gender').value = p.gender;
+  populateGroupSelect('ep-group', p.group_id || '');
+  const gt = document.getElementById('ep-group-type');
+  if (gt) gt.value = p.group_type || 'suelta';
   openModal('m-edit-product');
 }
 
@@ -2373,10 +2427,14 @@ async function saveEditProduct() {
   const low   = parseInt(document.getElementById('ep-low').value)||5;
   const gender = document.getElementById('ep-gender').value;
   if (!size||!color) { toast('Talla y color requeridos','t-red'); return; }
+  const group_id   = document.getElementById('ep-group')?.value || null;
+  const group_type = group_id ? (document.getElementById('ep-group-type')?.value || 'suelta') : null;
   try {
-    await dbUpdate('products', id, { size, color, sku, qty, low_stock_threshold:low, gender });
+    await dbUpdate('products', id, { size, color, sku, qty, low_stock_threshold:low, gender,
+      group_id: group_id || null, group_type: group_type || null });
     const p = getProd(id);
-    if (CFG.mode==='local' && p) Object.assign(p,{size,color,sku,qty,low_stock_threshold:low,gender});
+    if (CFG.mode==='local' && p) Object.assign(p,{size,color,sku,qty,low_stock_threshold:low,gender,
+      group_id: group_id||null, group_type: group_type||null});
     closeModal('m-edit-product');
     renderInventario(); renderDashboard();
     toast('Artículo actualizado','t-green');
@@ -2505,7 +2563,12 @@ function choosePSel(id, productId) {
 // ─── MODALS ──────────────────────────────────────────────────────────────────
 function openModal(id)  {
   document.getElementById(id).classList.add('open');
-  if (id === 'm-new-product') { resetSkuState(); }
+  if (id === 'm-new-product') {
+    resetSkuState();
+    populateGroupSelect('np-group', '');
+    const gt = document.getElementById('np-group-type');
+    if (gt) gt.value = 'suelta';
+  }
 }
 function closeModal(id) {
   document.getElementById(id).classList.remove('open');
@@ -2611,8 +2674,9 @@ async function deleteCollabById(id) {
 
 
 // ─── GROUPS ───────────────────────────────────────────────────────────────────
-let _openGroups = new Set(); // track which group cards are expanded
-let _openTallas = new Set(); // track which product rows show tallas
+let _openGroups   = new Set(); // track which group cards are expanded
+let _openTallas   = new Set(); // track which product rows show tallas
+let _colorFilters = {};        // { groupId: selectedColor|null }
 
 function renderGroups() {
   const el = document.getElementById('groups-list');
@@ -2660,10 +2724,28 @@ function renderGroups() {
         ${paquetes.map(p => makeCard(p)).join('')}
       </div>` : '';
 
+    // Color filter for sueltas
+    const activeColor  = _colorFilters[g.id] || null;
+    const sueltaColors = [...new Set(sueltas.map(p => p.color))].sort();
+    const visibleSueltas = activeColor ? sueltas.filter(p => p.color === activeColor) : sueltas;
+
+    const colorBtns = sueltaColors.length > 1 ? `
+      <div class="color-filters">
+        <span class="color-filter-label">Color:</span>
+        <button class="color-btn all-btn ${!activeColor?'active':''}"
+          onclick="setColorFilter('${g.id}', null)">Todos</button>
+        ${sueltaColors.map(col => `
+          <button class="color-btn ${activeColor===col?'active':''}"
+            onclick="setColorFilter('${g.id}', '${col.replace(/'/g,"\'")}')">
+            ${col}
+          </button>`).join('')}
+      </div>` : '';
+
     const sueltasSection = sueltas.length ? `
-      <div class="group-section-label">Sueltas · ${sueltas.length}</div>
+      <div class="group-section-label">Sueltas · ${sueltas.length}${activeColor ? ' · <span style="color:var(--accent)">'+activeColor+'</span>' : ''}</div>
+      ${colorBtns}
       <div class="group-cards-grid">
-        ${sueltas.map(p => makeCard(p)).join('')}
+        ${visibleSueltas.map(p => makeCard(p)).join('')}
       </div>` : '';
 
     const emptyMsg = !paquetes.length && !sueltas.length
@@ -2706,6 +2788,11 @@ function toggleTallas(groupId, key) {
   const k = groupId + '|' + key;
   if (_openTallas.has(k)) _openTallas.delete(k);
   else _openTallas.add(k);
+  renderGroups();
+}
+
+function setColorFilter(groupId, color) {
+  _colorFilters[groupId] = color;
   renderGroups();
 }
 
