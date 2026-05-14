@@ -988,6 +988,65 @@ textarea { resize:vertical; min-height:72px; }
   </div>
 </div>
 
+<!-- Modal: Nuevo grupo -->
+<div class="backdrop" id="m-new-group">
+  <div class="modal modal-lg">
+    <div class="modal-hd">
+      <div><div class="modal-title">Nuevo grupo</div><div class="modal-sub">Crea una colección de artículos relacionados</div></div>
+      <button class="modal-close" onclick="closeModal('m-new-group')"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="form-grid">
+      <div class="fg full"><label>Nombre del grupo *</label><input type="text" id="ng-name" placeholder="Ej: Polos Hombre, Paquete Bienvenida..."></div>
+      <div class="fg"><label>Ícono (emoji)</label><input type="text" id="ng-icon" placeholder="👕" maxlength="4"></div>
+      <div class="fg"><label>Color</label><input type="color" id="ng-color" value="#2a7d4f" style="height:40px;padding:4px 6px;cursor:pointer;"></div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-secondary" onclick="closeModal('m-new-group')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveNewGroup()">Crear grupo</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Editar grupo -->
+<div class="backdrop" id="m-edit-group">
+  <div class="modal modal-lg">
+    <div class="modal-hd">
+      <div><div class="modal-title">Editar grupo</div></div>
+      <button class="modal-close" onclick="closeModal('m-edit-group')"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <input type="hidden" id="eg-id">
+    <div class="form-grid">
+      <div class="fg full"><label>Nombre *</label><input type="text" id="eg-name"></div>
+      <div class="fg"><label>Ícono</label><input type="text" id="eg-icon" maxlength="4"></div>
+      <div class="fg"><label>Color</label><input type="color" id="eg-color" style="height:40px;padding:4px 6px;cursor:pointer;"></div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-red btn-sm" onclick="deleteGroup()">Eliminar grupo</button>
+      <button class="btn btn-secondary" onclick="closeModal('m-edit-group')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveEditGroup()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Asignar artículos a grupo -->
+<div class="backdrop" id="m-assign-group">
+  <div class="modal modal-lg">
+    <div class="modal-hd">
+      <div><div class="modal-title">Agregar artículos al grupo</div><div class="modal-sub" id="assign-group-sub"></div></div>
+      <button class="modal-close" onclick="closeModal('m-assign-group')"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="fg" style="margin-bottom:14px;">
+      <label>Buscar artículos disponibles</label>
+      <input type="text" id="assign-search" placeholder="Buscar por tipo, color, talla..." oninput="renderAssignList()">
+    </div>
+    <div id="assign-list" style="max-height:320px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--r2);"></div>
+    <div class="modal-ft">
+      <button class="btn btn-secondary" onclick="closeModal('m-assign-group')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+
 <!-- Toast container -->
 <div class="toasts" id="toasts"></div>
 
