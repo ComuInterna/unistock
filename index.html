@@ -478,6 +478,56 @@ textarea { resize:vertical; min-height:72px; }
   .product-grid { grid-template-columns:1fr 1fr; }
   .summary-pills { display:grid; grid-template-columns:1fr 1fr; }
 }
+
+/* ── GROUPS ── */
+.group-block { margin-bottom:28px; }
+.group-block-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; gap:12px; flex-wrap:wrap; }
+.group-block-title { display:flex; align-items:center; gap:9px; }
+.group-block-icon { width:30px; height:30px; border-radius:7px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:15px; }
+.group-block-name { font-family:var(--display); font-size:16px; font-weight:700; }
+.group-block-meta { font-size:12px; color:var(--text3); font-family:var(--mono); margin-top:2px; }
+.group-block-actions { display:flex; gap:6px; align-items:center; }
+.group-section-label { font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.1em; color:var(--text3); margin:0 0 10px; padding-bottom:6px; border-bottom:1px solid var(--border); }
+.group-cards-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(160px, 1fr)); gap:10px; margin-bottom:18px; }
+.gpc { background:var(--surface); border:1px solid var(--border); border-radius:var(--r); padding:13px 14px; position:relative; transition:all .18s; }
+.gpc:hover { border-color:var(--border2); box-shadow:var(--sh); }
+.gpc.stock-out { border-color:var(--red); background:var(--red2); }
+.gpc.stock-low { border-color:#e5b96a; background:var(--amber2); }
+.gpc-type { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--text3); margin-bottom:3px; }
+.gpc-color { font-size:14px; font-weight:600; letter-spacing:-.2px; }
+.gpc-meta { font-size:11.5px; color:var(--text3); margin-bottom:10px; }
+.gpc-bottom { display:flex; align-items:flex-end; justify-content:space-between; }
+.gpc-qty { font-family:var(--mono); font-size:26px; font-weight:700; line-height:1; }
+.gpc-qty.ok { color:var(--green); } .gpc-qty.low { color:var(--amber); } .gpc-qty.out { color:var(--red); }
+.gpc-status { font-size:11px; font-weight:600; padding:2px 7px; border-radius:20px; }
+.gpc-status.ok { background:var(--green2); color:var(--green); } .gpc-status.low { background:var(--amber2); color:var(--amber); } .gpc-status.out { background:var(--red2); color:var(--red); }
+.gpc-actions { position:absolute; top:7px; right:7px; display:none; gap:3px; }
+.gpc:hover .gpc-actions { display:flex; }
+.gpc-btn { background:var(--surface); border:1px solid var(--border); border-radius:4px; padding:3px 7px; font-size:11px; font-weight:500; cursor:pointer; font-family:var(--font); color:var(--text2); transition:all .12s; white-space:nowrap; }
+.gpc-btn:hover { background:var(--bg); color:var(--text); }
+.gpc-btn.remove { color:var(--red); }
+.gpc-btn.remove:hover { background:var(--red2); border-color:var(--red); }
+.group-empty { padding:28px; font-size:13px; color:var(--text3); text-align:center; }
+.dash-group-row { display:flex; align-items:center; justify-content:space-between; padding:10px 14px; border-bottom:1px solid var(--border); cursor:pointer; transition:background .1s; }
+.dash-group-row:last-child { border-bottom:none; }
+.dash-group-row:hover { background:var(--bg); }
+.dash-group-name { font-size:13.5px; font-weight:500; }
+.dash-group-sub { font-size:11.5px; color:var(--text3); margin-top:1px; }
+.assign-item { display:flex; align-items:center; justify-content:space-between; padding:10px 14px; border-bottom:1px solid var(--border); gap:10px; }
+.assign-item:last-child { border-bottom:none; }
+.assign-item-name { font-size:13.5px; font-weight:500; }
+.assign-item-meta { font-size:12px; color:var(--text3); font-family:var(--mono); margin-top:2px; }
+.assign-gender-badge { display:inline-block; padding:2px 8px; border-radius:20px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; white-space:nowrap; }
+.ag-hombre { background:#eaf1fc; color:#1a5fb4; }
+.ag-mujer  { background:#fdf0ec; color:#d4522a; }
+.ag-unisex { background:var(--green2); color:var(--green); }
+.ag-na     { background:var(--bg); color:var(--text3); border:1px solid var(--border); }
+/* Drag */
+tbody tr.dragging { opacity:.4; } tbody tr.drag-over td { border-top:2px solid var(--accent) !important; }
+tbody tr[draggable] { cursor:grab; } tbody tr[draggable]:active { cursor:grabbing; }
+.drag-handle { display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px; color:var(--text3); cursor:grab; border-radius:4px; transition:color .15s; }
+.drag-handle:hover { color:var(--text); }
+.drag-handle svg { width:14px; height:14px; pointer-events:none; }
 </style>
 </head>
 <body>
@@ -2569,135 +2619,83 @@ function renderGroups() {
   if (!el) return;
 
   if (!GROUPS.length) {
-    el.innerHTML = `<div class="empty"><div class="empty-icon" style="font-size:32px;margin-bottom:10px">🗂️</div>
-      <h3>Sin grupos</h3><p>Crea tu primer grupo para organizar artículos</p></div>`;
+    el.innerHTML = `<div class="empty">
+      <div class="empty-icon" style="font-size:32px;margin-bottom:10px">🗂️</div>
+      <h3>Sin grupos</h3>
+      <p>Crea tu primer grupo para organizar artículos</p>
+    </div>`;
     return;
   }
 
-  el.innerHTML = '<div class="groups-grid">' + GROUPS.map(g => {
-    const gProds    = PRODS.filter(p => p.group_id === g.id);
-    const totalQty  = gProds.reduce((s,p) => s+p.qty, 0);
-    const isOpen    = _openGroups.has(g.id);
-    const bgColor   = g.color || '#2a7d4f';
+  el.innerHTML = GROUPS.map(g => {
+    const gProds   = PRODS.filter(p => p.group_id === g.id);
+    const totalQty = gProds.reduce((s,p) => s+p.qty, 0);
+    const bgColor  = g.color || '#2a7d4f';
 
-    // Separate into paquetes (tagged) and sueltas
     const paquetes = gProds.filter(p => p.group_type === 'paquete');
     const sueltas  = gProds.filter(p => p.group_type !== 'paquete');
 
-    // Group sueltas by type+color for nested tallas view
-    const sueltasMap = {};
-    sueltas.forEach(p => {
-      const t   = getType(p.type_id);
-      const key = (t?.name||'?') + '|' + p.color;
-      if (!sueltasMap[key]) sueltasMap[key] = { name:(t?.name||'?'), color:p.color, items:[] };
-      sueltasMap[key].items.push(p);
-    });
-
-    const paquetesHTML = paquetes.length ? `
-      <div class="group-section">
-        <div class="group-section-hd">
-          Paquetes <span class="group-total-pill">${paquetes.length}</span>
+    function makeCard(p) {
+      const t  = getType(p.type_id);
+      const sc = stockClass(p);
+      const labels = { ok:'OK', low:'Bajo', out:'Sin stock' };
+      return `<div class="gpc stock-${sc}">
+        <div class="gpc-actions">
+          <button class="gpc-btn" onclick="openEditStock('${p.id}')">Stock</button>
+          <button class="gpc-btn remove" onclick="removeFromGroup('${p.id}')">✕</button>
         </div>
-        ${paquetes.map(p => {
-          const t = getType(p.type_id);
-          return `<div class="group-item">
-            <div class="group-item-left">
-              <div>
-                <div class="group-item-name">${t?.name||'?'} ${p.color}</div>
-                <div class="group-item-meta">Talla ${p.size} · ${p.sku||'—'}</div>
-              </div>
-            </div>
-            <div class="group-item-stock">
-              ${stockPill(p)}
-              <button class="btn btn-secondary btn-sm" onclick="openEditStock('${p.id}')">Stock</button>
-              <button class="btn btn-ghost btn-sm btn-icon" onclick="removeFromGroup('${p.id}')" title="Quitar del grupo" style="color:var(--text3)">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              </button>
-            </div>
-          </div>`;
-        }).join('')}
+        <div class="gpc-type">${t?.name||'?'} · ${p.gender}</div>
+        <div class="gpc-color">${p.color}</div>
+        <div class="gpc-meta">Talla ${p.size} · ${p.sku||'—'}</div>
+        <div class="gpc-bottom">
+          <div class="gpc-qty ${sc}">${p.qty}</div>
+          <span class="gpc-status ${sc}">${labels[sc]}</span>
+        </div>
+      </div>`;
+    }
+
+    const paquetesSection = paquetes.length ? `
+      <div class="group-section-label">Paquetes · ${paquetes.length}</div>
+      <div class="group-cards-grid">
+        ${paquetes.map(p => makeCard(p)).join('')}
       </div>` : '';
 
-    const sueltasHTML = Object.keys(sueltasMap).length ? `
-      <div class="group-section">
-        <div class="group-section-hd">
-          Sueltas <span class="group-total-pill">${sueltas.length}</span>
-        </div>
-        ${Object.entries(sueltasMap).map(([key, data]) => {
-          const isT = _openTallas.has(g.id + '|' + key);
-          const subTotal = data.items.reduce((s,p)=>s+p.qty,0);
-          const anyLow   = data.items.some(p=>stockClass(p)==='low');
-          const anyOut   = data.items.some(p=>stockClass(p)==='out');
-          const pillCls  = anyOut?'sp-out':anyLow?'sp-low':'sp-ok';
-          return `<div>
-            <div class="group-item" onclick="toggleTallas('${g.id}','${key.replace(/'/g,"\'")}')">
-              <div class="group-item-left">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                  style="transition:transform .2s;transform:rotate(${isT?'90':'0'}deg);color:var(--text3)">
-                  <polyline points="9 18 15 12 9 6"/>
-                </svg>
-                <div>
-                  <div class="group-item-name">${data.name} <span style="color:var(--text3)">${data.color}</span></div>
-                  <div class="group-item-meta">${data.items.length} tallas</div>
-                </div>
-              </div>
-              <div class="group-item-stock">
-                <span class="stock-pill ${pillCls}">${subTotal} uds</span>
-              </div>
-            </div>
-            <div class="tallas-panel ${isT?'open':''}">
-              ${data.items.map(p => `
-                <div class="talla-row">
-                  <div class="talla-name">
-                    <span class="badge badge-neutral">${p.size}</span>
-                    <span style="font-family:var(--mono);font-size:12px;color:var(--text3)">${p.sku||'—'}</span>
-                  </div>
-                  <div style="display:flex;align-items:center;gap:8px">
-                    ${stockPill(p)}
-                    <button class="btn btn-secondary btn-sm" onclick="openEditStock('${p.id}')">Stock</button>
-                    <button class="btn btn-ghost btn-sm btn-icon" onclick="removeFromGroup('${p.id}')" style="color:var(--text3)">
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                    </button>
-                  </div>
-                </div>`).join('')}
-            </div>
-          </div>`;
-        }).join('')}
+    const sueltasSection = sueltas.length ? `
+      <div class="group-section-label">Sueltas · ${sueltas.length}</div>
+      <div class="group-cards-grid">
+        ${sueltas.map(p => makeCard(p)).join('')}
       </div>` : '';
 
-    return `<div class="group-card" id="group-card-${g.id}">
-      <div class="group-header" onclick="toggleGroup('${g.id}')">
-        <div class="group-title-row">
-          <div class="group-icon" style="background:${bgColor}20;color:${bgColor}">${g.icon||'🗂️'}</div>
+    const emptyMsg = !paquetes.length && !sueltas.length
+      ? '<div class="group-empty">Sin artículos — usa + para agregar</div>' : '';
+
+    return `<div class="group-block" id="group-block-${g.id}">
+      <div class="group-block-header">
+        <div class="group-block-title">
+          <div class="group-block-icon" style="background:${bgColor}22;color:${bgColor}">${g.icon||'🗂️'}</div>
           <div>
-            <div class="group-name">${g.name}</div>
-            <div class="group-meta">${gProds.length} artículos · ${totalQty} uds</div>
+            <div class="group-block-name" style="color:${bgColor}">${g.name}</div>
+            <div class="group-block-meta">${gProds.length} artículos · ${totalQty} uds</div>
           </div>
         </div>
-        <div style="display:flex;align-items:center;gap:6px">
-          <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();openAssignGroup('${g.id}')" title="Agregar artículos">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        <div class="group-block-actions">
+          <button class="btn btn-secondary btn-sm" onclick="openAssignGroup('${g.id}')">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Agregar
           </button>
-          <button class="btn btn-ghost btn-sm btn-icon" onclick="event.stopPropagation();openEditGroup('${g.id}')" title="Editar grupo">
+          <button class="btn btn-ghost btn-sm btn-icon" onclick="openEditGroup('${g.id}')">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4z"/></svg>
           </button>
-          <svg class="group-chevron ${isOpen?'open':''}" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="9 18 15 12 9 6"/>
-          </svg>
         </div>
       </div>
-      <div class="group-body ${isOpen?'open':''}">
-        ${paquetesHTML}
-        ${sueltasHTML}
-        ${!paquetesHTML && !sueltasHTML ? '<div class="group-empty">Sin artículos — toca + para agregar</div>' : ''}
-      </div>
+      ${paquetesSection}
+      ${sueltasSection}
+      ${emptyMsg}
     </div>`;
-  }).join('') + '</div>';
+  }).join('');
 
-  // Update dashboard groups too
   renderDashboardGroups();
 }
-
 function toggleGroup(id) {
   if (_openGroups.has(id)) _openGroups.delete(id);
   else _openGroups.add(id);
@@ -2818,39 +2816,57 @@ function renderAssignList() {
   const el = document.getElementById('assign-list');
   if (!el) return;
   const q = (document.getElementById('assign-search')?.value||'').toLowerCase();
-  // Show unassigned products + products already in this group
+
   const prods = PRODS.filter(p => {
-    const inThisGroup  = p.group_id === _assigningGroupId;
-    const unassigned   = !p.group_id;
+    const inThisGroup = p.group_id === _assigningGroupId;
+    const unassigned  = !p.group_id;
     if (!inThisGroup && !unassigned) return false;
     if (q) {
       const t  = getType(p.type_id);
       const cc = getCat(p.category_id);
-      const s  = [t?.name,p.color,p.size,p.gender,p.sku,cc?.name].join(' ').toLowerCase();
+      const s  = [t?.name, p.color, p.size, p.gender, p.sku, cc?.name].join(' ').toLowerCase();
       if (!s.includes(q)) return false;
     }
     return true;
   });
 
   if (!prods.length) {
-    el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3);font-size:13px">Sin artículos disponibles para agregar</div>';
+    el.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text3);font-size:13px">Sin artículos disponibles</div>';
     return;
   }
 
+  // Gender badge helper
+  function genderBadge(g) {
+    const map = {
+      'Hombre': ['ag-hombre','Hombre'],
+      'Mujer':  ['ag-mujer', 'Mujer'],
+      'Unisex': ['ag-unisex','Unisex'],
+      'N/A':    ['ag-na',    'N/A'],
+    };
+    const [cls, label] = map[g] || ['ag-na', g];
+    return `<span class="assign-gender-badge ${cls}">${label}</span>`;
+  }
+
   el.innerHTML = prods.map(p => {
-    const t = getType(p.type_id);
+    const t       = getType(p.type_id);
     const inGroup = p.group_id === _assigningGroupId;
-    const isPackage = p.group_type === 'paquete';
-    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border)">
-      <div>
-        <div style="font-size:13.5px;font-weight:500">${t?.name||'?'} ${p.color} — Talla ${p.size}</div>
-        <div style="font-size:11.5px;color:var(--text3);font-family:var(--mono)">${p.sku||'—'} · ${stockPill(p)}</div>
+    const isPkg   = p.group_type === 'paquete';
+    const sc      = stockClass(p);
+    const scLabels = { ok:'OK', low:'Bajo', out:'Sin stock' };
+    return `<div class="assign-item">
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:3px">
+          <span class="assign-item-name">${t?.name||'?'} — ${p.color}</span>
+          ${genderBadge(p.gender)}
+          ${inGroup ? `<span style="font-size:10.5px;font-weight:600;color:var(--accent);background:var(--accent2);padding:2px 7px;border-radius:20px">${isPkg?'Paquete':'Suelta'}</span>` : ''}
+        </div>
+        <div class="assign-item-meta">Talla ${p.size} · ${p.sku||'—'} · <span class="gpc-qty ${sc}" style="font-size:12px">${p.qty}</span> <span style="font-size:11px;color:var(--text3)">${scLabels[sc]}</span></div>
       </div>
-      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
         ${inGroup ? `
-          <select style="font-size:12px;padding:4px 8px" onchange="changeGroupType('${p.id}',this.value)">
-            <option value="suelta"  ${!isPackage?'selected':''}>Suelta</option>
-            <option value="paquete" ${isPackage?'selected':''}> Paquete</option>
+          <select style="font-size:12px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-family:var(--font)" onchange="changeGroupType('${p.id}',this.value)">
+            <option value="suelta"  ${!isPkg?'selected':''}>Suelta</option>
+            <option value="paquete" ${isPkg ?'selected':''}>Paquete</option>
           </select>
           <button class="btn btn-red btn-sm" onclick="removeFromGroup('${p.id}');renderAssignList()">Quitar</button>
         ` : `
