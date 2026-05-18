@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <title>UniStock | Control de Uniformes</title>
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2032%2032%22%3E%3Ccircle%20cx%3D%2216%22%20cy%3D%2216%22%20r%3D%2216%22%20fill%3D%22%23181714%22/%3E%3Cg%20transform%3D%22translate%284%2C4%29%22%20stroke%3D%22white%22%20fill%3D%22none%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%2219.89%2010.57%2022.48%2012.04%2011.89%2018.02%201.3%2012.04%203.99%2010.5%22/%3E%20%3Cg%3E%20%3Cpolygon%20points%3D%221.43%207.04%2012.02%2013.02%2022.61%207.04%2012.02%201%201.43%207.04%22/%3E%20%3Cpolyline%20points%3D%2219.97%2015.5%2022.61%2017%2012.02%2023%201.43%2017%204.06%2015.5%22/%3E%20%3C/g%3E%3C/g%3E%3C/svg%3E">
@@ -445,39 +445,197 @@ textarea { resize:vertical; min-height:72px; }
 .divider { height:1px; background:var(--border); margin:16px 0; }
 
 /* ═══════════════════════════ RESPONSIVE ═══════════════════════════ */
+
+
+
+
+
+/* ══════════════════════════════════════════════════════
+   RESPONSIVE — TABLET (≤900px)
+══════════════════════════════════════════════════════ */
 @media (max-width: 900px) {
-  .two-col { grid-template-columns:1fr; }
-  .catalog-grid { grid-template-columns:1fr; }
-  .form-grid.cols3 { grid-template-columns:1fr 1fr; }
+  .two-col          { grid-template-columns:1fr; }
+  .catalog-grid     { grid-template-columns:1fr; }
+  .form-grid.cols3  { grid-template-columns:1fr 1fr; }
+  .group-cards-grid { grid-template-columns:repeat(auto-fill, minmax(140px,1fr)); }
 }
 
-@media (max-width: 720px) {
-  :root { --sidebar:0px; }
-  .sidebar {
-    width:260px; transform:translateX(-100%);
-    box-shadow:var(--sh2);
+/* ══════════════════════════════════════════════════════
+   RESPONSIVE — MOBILE (≤768px)
+══════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  :root {
+    --sidebar: 0px;
+    --topbar:  56px;
+    --r: 10px;
   }
-  .sidebar.mobile-open { transform:translateX(0); }
-  .main { margin-left:0; }
-  .menu-btn { display:flex; }
-  .content { padding:14px; }
-  .topbar { padding:0 14px; }
-  .product-grid { grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:10px; }
-  .form-grid { grid-template-columns:1fr; }
-  .form-grid.cols3 { grid-template-columns:1fr; }
-  .summary-pills { gap:8px; }
-  .summary-pill { min-width:120px; padding:10px 12px; }
-  .filters input { min-width:0; }
-  .topbar-right .btn span { display:none; }
-  .sh { gap:8px; }
+
+  /* ── Sidebar: hidden drawer ── */
+  .sidebar {
+    width: 280px;
+    transform: translateX(-100%);
+    box-shadow: var(--sh2);
+    z-index: 300;
+  }
+  .sidebar.mobile-open { transform: translateX(0); }
+  .main { margin-left: 0; }
+  .menu-btn { display: flex; }
+
+  /* ── Topbar ── */
+  .topbar { padding: 0 16px; height: 56px; }
+  .topbar-title { font-size: 15px; }
+  .topbar-right .btn span { display: none; }
+  .topbar-right .btn { padding: 7px 10px; }
+
+  /* ── Content padding ── */
+  .content { padding: 16px; }
+
+  /* ── Bottom nav (mobile only) ── */
+  .mobile-bottom-nav {
+    display: flex;
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: var(--surface); border-top: 1px solid var(--border);
+    z-index: 200; padding: 6px 0 calc(6px + env(safe-area-inset-bottom, 0px));
+  }
+  .mobile-bottom-nav .mbn-item {
+    flex: 1; display: flex; flex-direction: column; align-items: center;
+    gap: 3px; padding: 8px 4px; cursor: pointer; border: none;
+    background: none; font-family: var(--font); color: var(--text3);
+    font-size: 10px; font-weight: 500; transition: color .15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .mobile-bottom-nav .mbn-item.active { color: var(--accent); }
+  .mobile-bottom-nav .mbn-item svg {
+    width: 22px; height: 22px; stroke: currentColor;
+    fill: none; stroke-width: 1.8;
+  }
+  /* Push content above bottom nav */
+  .content { padding-bottom: 80px; }
+
+  /* ── Dashboard summary pills ── */
+  .summary-pills {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+  }
+  .summary-pill { padding: 12px 14px; min-width: 0; }
+  .pill-val { font-size: 26px; }
+  .pill-lbl { font-size: 11px; }
+
+  /* ── Dashboard filter bar ── */
+  .dash-filter-bar { gap: 8px; }
+  .dash-filter-bar input { min-width: 0; flex: 1; font-size: 14px; }
+  .dash-filter-bar select { font-size: 13px; flex: 1; min-width: 0; }
+
+  /* ── Product grid (dashboard cards) ── */
+  .product-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .product-card { padding: 12px; }
+  .pc-type { font-size: 9.5px; }
+  .pc-name { font-size: 13px; }
+  .pc-qty  { font-size: 24px; }
+
+  /* ── Group cards ── */
+  .group-cards-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .gpc { padding: 11px 12px; }
+  .gpc-qty { font-size: 22px; }
+  /* Show actions always on mobile (no hover) */
+  .gpc-actions { display: flex; }
+  .gpc-drag-handle { display: none !important; }
+
+  /* ── Group block header ── */
+  .group-block-header { flex-wrap: nowrap; }
+  .group-block-name { font-size: 15px; }
+  .group-block-actions .btn span { display: none; }
+
+  /* ── Category header ── */
+  .cat-header { padding: 10px 12px; border-radius: var(--r); background: var(--surface); border: 1px solid var(--border); margin-left: 0; margin-right: 0; margin-bottom: 10px; }
+  .cat-name { font-size: 15px; }
+  .cat-count { font-size: 11px; }
+
+  /* ── Section headers ── */
+  .sh { flex-wrap: wrap; gap: 10px; }
+  .sh-t { font-size: 16px; }
+  .sh .btn span { display: none; }
+  .sh .btn { padding: 8px 12px; }
+
+  /* ── Forms ── */
+  .form-grid, .form-grid.cols3 { grid-template-columns: 1fr; }
+  .fg.full { grid-column: 1; }
+  input, select, textarea { font-size: 16px !important; } /* prevent iOS zoom */
+
+  /* ── Tables: horizontal scroll ── */
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table { min-width: 560px; }
+  thead th, tbody td { padding: 10px 12px; font-size: 12.5px; }
+
+  /* ── Filters bar ── */
+  .filters { gap: 8px; }
+  .filters input { min-width: 0; flex: 1; }
+  .filters select { flex: 1; min-width: 0; }
+
+  /* ── Modals ── */
+  .backdrop { align-items: flex-end; padding: 0; }
+  .modal {
+    border-radius: 18px 18px 0 0;
+    padding: 20px 20px calc(20px + env(safe-area-inset-bottom, 0px));
+    max-height: 90vh; width: 100%; max-width: 100%;
+    animation: slideUpModal .25s cubic-bezier(.32,0,.67,0);
+  }
+  @keyframes slideUpModal {
+    from { transform: translateY(100%); }
+    to   { transform: translateY(0); }
+  }
+
+  /* ── Two col ── */
+  .two-col { grid-template-columns: 1fr; gap: 16px; }
+
+  /* ── Catalog grid ── */
+  .catalog-grid { grid-template-columns: 1fr; }
+
+  /* ── Inventory table actions ── */
+  tbody td:last-child { display: flex; flex-wrap: wrap; gap: 4px; }
+
+  /* ── Color filter buttons ── */
+  .color-filters { gap: 6px; }
+  .color-btn { padding: 6px 12px; font-size: 13px; }
+
+  /* ── Multi-talla chips ── */
+  .mt-preset-row { gap: 6px; }
+  .mt-preset-btn { padding: 6px 12px; font-size: 13px; }
+
+  /* ── Assign list items ── */
+  .assign-item { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .assign-item > div:last-child { width: 100%; display: flex; gap: 6px; }
+  .assign-item > div:last-child .btn { flex: 1; justify-content: center; }
+
+  /* ── Recent cards ── */
+  .recent-card { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .rc-qty { align-self: flex-end; }
+
+  /* ── Collaborator chips ── */
+  .collab-chips { min-height: 48px; }
+
+  /* ── Topbar actions ── */
+  .topbar-actions { gap: 6px; }
 }
 
-@media (max-width: 420px) {
-  .modal { padding:18px; }
-  .setup-card { padding:22px; }
-  .product-grid { grid-template-columns:1fr 1fr; }
-  .summary-pills { display:grid; grid-template-columns:1fr 1fr; }
+/* ══════════════════════════════════════════════════════
+   RESPONSIVE — SMALL PHONES (≤390px)
+══════════════════════════════════════════════════════ */
+@media (max-width: 390px) {
+  .product-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .group-cards-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .summary-pills { gap: 8px; }
+  .gpc-qty { font-size: 20px; }
+  .modal { padding: 16px 16px calc(16px + env(safe-area-inset-bottom, 0px)); }
+  .content { padding: 12px; padding-bottom: 80px; }
+  .topbar { height: 52px; }
 }
+
 
 /* ── GROUPS ── */
 .group-block { margin-bottom:28px; }
@@ -570,6 +728,112 @@ tbody tr[draggable] { cursor:grab; } tbody tr[draggable]:active { cursor:grabbin
 .mt-preview-sku { color:var(--text3); font-size:11px; }
 .mt-stock-row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; border-top:1px solid var(--border); padding-top:10px; }
 .mt-stock-label { font-size:12.5px; color:var(--text2); white-space:nowrap; }
+
+
+/* ── COLLAPSIBLE CATEGORIES (dashboard) ── */
+.cat-header {
+  display:flex; align-items:center; gap:10px; margin-bottom:12px;
+  cursor:pointer; user-select:none; padding:6px 8px; border-radius:var(--r2);
+  transition:background .15s; margin-left:-8px; margin-right:-8px;
+}
+.cat-header:hover { background:var(--bg2); }
+.cat-chevron {
+  margin-left:auto; color:var(--text3); flex-shrink:0;
+  transition:transform .22s cubic-bezier(.4,0,.2,1);
+}
+.cat-chevron.collapsed { transform:rotate(-90deg); }
+.cat-grid-wrap {
+  overflow:hidden;
+  transition:max-height .3s cubic-bezier(.4,0,.2,1), opacity .25s;
+  max-height:2000px; opacity:1;
+}
+.cat-grid-wrap.collapsed { max-height:0 !important; opacity:0; }
+
+/* ── DRAGGABLE GROUP CARDS ── */
+.gpc[draggable="true"] { cursor:grab; }
+.gpc[draggable="true"]:active { cursor:grabbing; }
+.gpc.gpc-dragging { opacity:.35; outline:2px dashed var(--accent); outline-offset:2px; }
+.gpc.gpc-drag-over { outline:2px solid var(--accent); outline-offset:2px; background:var(--accent2) !important; }
+.gpc-drag-handle {
+  position:absolute; top:7px; left:7px; width:16px; height:16px;
+  display:none; align-items:center; justify-content:center;
+  color:var(--text3); cursor:grab;
+}
+.gpc:hover .gpc-drag-handle { display:flex; }
+.gpc-drag-handle svg { width:12px; height:12px; pointer-events:none; }
+
+/* ── COLLAPSIBLE GROUPS ── */
+.group-block-header { cursor:pointer; }
+.group-block-header:hover .group-block-name { text-decoration:underline; text-decoration-color:rgba(0,0,0,.2); }
+.group-collapse-chevron {
+  color:var(--text3); flex-shrink:0; margin-left:4px;
+  transition:transform .22s cubic-bezier(.4,0,.2,1);
+}
+.group-collapse-chevron.collapsed { transform:rotate(-90deg); }
+.group-body-wrap {
+  overflow:hidden;
+  transition:max-height .3s cubic-bezier(.4,0,.2,1), opacity .25s;
+  max-height:4000px; opacity:1;
+}
+.group-body-wrap.collapsed { max-height:0 !important; opacity:0; }
+
+
+/* ── TOUCH TARGETS & iOS FIXES ── */
+@media (max-width: 768px) {
+  /* Minimum 44px tap targets */
+  .btn { min-height: 40px; }
+  .btn-sm { min-height: 36px; padding: 8px 14px; font-size: 13px; }
+  .nav-item { min-height: 44px; }
+  .mbn-item { min-height: 56px; }
+
+  /* Touch-friendly table */
+  tbody td { padding: 12px 10px; }
+
+  /* Larger close button on modals */
+  .modal-close { width: 36px; height: 36px; }
+
+  /* Prevent text selection on drag */
+  .group-block-header, .cat-header { -webkit-user-select: none; user-select: none; }
+
+  /* Smooth scrolling */
+  .content { -webkit-overflow-scrolling: touch; }
+
+  /* Better tap feedback */
+  .btn:active { opacity: .8; transform: scale(.98); }
+  .product-card:active { transform: scale(.98); }
+  .gpc:active { transform: scale(.98); }
+  .cat-header:active, .group-block-header:active { background: var(--bg2); }
+  .dash-group-row:active { background: var(--bg2); }
+
+  /* Hide sidebar scrollbar on mobile */
+  .sidebar::-webkit-scrollbar { display: none; }
+
+  /* Bigger modal handles */
+  .modal::before {
+    content: '';
+    display: block;
+    width: 40px; height: 4px;
+    background: var(--border2); border-radius: 2px;
+    margin: 0 auto 16px;
+  }
+
+  /* Full-width buttons in forms */
+  .modal-ft { flex-direction: column-reverse; }
+  .modal-ft .btn { width: 100%; justify-content: center; min-height: 46px; font-size: 15px; }
+  .modal-ft .btn-sm { width: auto; }
+
+  /* Inventario filters: wrap nicely */
+  .filters { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .filters input[type=text] { grid-column: 1 / -1; }
+  .filters #h-q { grid-column: 1 / -1; }
+
+  /* Topbar: compact */
+  .logo-badge { display: none; }
+
+  /* Collab chips */
+  .chip { font-size: 13px; padding: 5px 6px 5px 12px; }
+  .chip-remove { width: 18px; height: 18px; font-size: 12px; }
+}
 
 </style>
 </head>
@@ -1665,6 +1929,34 @@ function fmtDate(d) {
   return new Date(d+'T12:00:00').toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'});
 }
 
+
+function toggleCatCollapse(catId) {
+  if (_openCats.has(catId)) {
+    // Already open — close it
+    _openCats.delete(catId);
+  } else {
+    // Open only this one, close all others
+    _openCats.clear();
+    _openCats.add(catId);
+  }
+  renderDashboard();
+}
+
+
+// Navigate to Grupos page and open a specific group
+function navToGroup(groupId) {
+  const btn = document.querySelector('[data-page=grupos]');
+  nav('grupos', btn);
+  // Close all groups, open only the target
+  _openGroups.clear();
+  _openGroups.add(groupId);
+  renderGroups();
+  setTimeout(() => {
+    const el = document.getElementById('group-block-' + groupId);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 150);
+}
+
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
 function renderDashboard() {
   const total  = PRODS.reduce((s,p)=>s+p.qty,0);
@@ -1694,12 +1986,16 @@ function renderDashboard() {
     if (q)    prods = prods.filter(p => productLabel(p).toLowerCase().includes(q) || (p.sku||'').toLowerCase().includes(q));
     if (!prods.length) return;
 
+    // Default: collapsed. Opened = in _openCats set
+    const catCollapsed = !_openCats.has(cat.id);
     html += `<div class="cat-section">
-      <div class="cat-header">
+      <div class="cat-header" onclick="toggleCatCollapse('${cat.id}')">
         ${getCatIcon(cat.icon, "20px")}
         <span class="cat-name" style="color:${cat.color}">${cat.name}</span>
         <span class="cat-count">${prods.length} refs · ${prods.reduce((s,p)=>s+p.qty,0)} uds</span>
+        <svg class="cat-chevron ${catCollapsed?'collapsed':''}" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
       </div>
+      <div class="cat-grid-wrap ${catCollapsed?'collapsed':''}" style="${catCollapsed?'max-height:0;opacity:0':''}">
       <div class="product-grid">
         ${prods.map(p => {
           const t = getType(p.type_id);
@@ -1715,6 +2011,7 @@ function renderDashboard() {
             </div>
           </div>`;
         }).join('')}
+      </div>
       </div>
     </div>`;
   });
@@ -2886,7 +3183,127 @@ async function deleteCollabById(id) {
 // ─── GROUPS ───────────────────────────────────────────────────────────────────
 let _openGroups   = new Set(); // track which group cards are expanded
 let _openTallas   = new Set(); // track which product rows show tallas
-let _colorFilters = {};        // { groupId: selectedColor|null }
+let _colorFilters   = {};        // { groupId: selectedColor|null }
+let _collapsedCats  = new Set(); // collapsed category ids in dashboard
+let _openCats       = new Set(); // explicitly opened category ids (default = all collapsed)
+let _collapsedGroups= new Set(); // collapsed group ids
+let _groupCardOrder = {};        // { groupId: [prodId, ...] }
+(function(){ try{ const r=localStorage.getItem('unistock-group-order'); if(r) _groupCardOrder=JSON.parse(r); }catch(e){} })();
+
+
+function saveGroupCardOrder() {
+  try { localStorage.setItem('unistock-group-order', JSON.stringify(_groupCardOrder)); } catch(e) {}
+}
+
+function loadGroupCardOrder() {
+  try {
+    const raw = localStorage.getItem('unistock-group-order');
+    if (raw) _groupCardOrder = JSON.parse(raw);
+  } catch(e) {}
+}
+
+function applyGroupCardOrder(prods, groupId, section) {
+  const key   = groupId + ':' + section;
+  const order = _groupCardOrder[key];
+  if (!order || !order.length) return prods;
+  const idxMap = {};
+  order.forEach((id, i) => idxMap[id] = i);
+  return [...prods].sort((a, b) => {
+    const ai = idxMap[a.id] !== undefined ? idxMap[a.id] : 99999;
+    const bi = idxMap[b.id] !== undefined ? idxMap[b.id] : 99999;
+    return ai - bi;
+  });
+}
+
+
+// ─── GROUP COLLAPSE ───────────────────────────────────────────────────────────
+function toggleGroupCollapse(groupId, e) {
+  if (e && e.target.closest && e.target.closest('button')) return;
+  if (_openGroups.has(groupId)) _openGroups.delete(groupId);
+  else _openGroups.add(groupId);
+  // Toggle DOM directly — no full re-render needed
+  const body = document.getElementById('gbody-' + groupId);
+  const chev = document.getElementById('gchev-' + groupId);
+  if (body) {
+    const isOpen = _openGroups.has(groupId);
+    body.style.display = isOpen ? '' : 'none';
+    if (chev) chev.style.transform = isOpen ? '' : 'rotate(-90deg)';
+  }
+}
+
+// Open a specific group programmatically and scroll to it
+function openGroup(groupId) {
+  _openGroups.add(groupId);
+  renderGroups();
+  setTimeout(() => {
+    const el = document.getElementById('group-block-' + groupId);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 120);
+}
+
+// ─── GROUP CARD DRAG & DROP ───────────────────────────────────────────────────
+let _gpcDragSrc     = null;
+let _gpcDragGroupId = null;
+let _gpcDragSection = null;
+
+function gpcDragStart(e) {
+  _gpcDragSrc     = e.currentTarget;
+  _gpcDragGroupId = e.currentTarget.dataset.groupId;
+  _gpcDragSection = e.currentTarget.dataset.section;
+  e.currentTarget.classList.add('gpc-dragging');
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', e.currentTarget.dataset.prodId);
+}
+
+function gpcDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  const tgt = e.currentTarget;
+  if (tgt === _gpcDragSrc) return;
+  if (tgt.dataset.groupId !== _gpcDragGroupId) return;
+  if (tgt.dataset.section !== _gpcDragSection) return;
+  tgt.classList.add('gpc-drag-over');
+}
+
+function gpcDragLeave(e) {
+  e.currentTarget.classList.remove('gpc-drag-over');
+}
+
+function gpcDrop(e) {
+  e.preventDefault();
+  const tgt = e.currentTarget;
+  tgt.classList.remove('gpc-drag-over');
+  if (!_gpcDragSrc || tgt === _gpcDragSrc) return;
+  if (tgt.dataset.groupId !== _gpcDragGroupId) return;
+  if (tgt.dataset.section !== _gpcDragSection) return;
+
+  const grid = tgt.parentElement;
+
+  // Reorder in DOM
+  const rect = tgt.getBoundingClientRect();
+  const midY = rect.top + rect.height / 2;
+  if (e.clientY < midY) {
+    grid.insertBefore(_gpcDragSrc, tgt);
+  } else {
+    grid.insertBefore(_gpcDragSrc, tgt.nextSibling);
+  }
+
+  // Persist order
+  const newOrder = [...grid.querySelectorAll('.gpc[data-prod-id]')]
+    .map(el => el.dataset.prodId);
+  const key = _gpcDragGroupId + ':' + _gpcDragSection;
+  _groupCardOrder[key] = newOrder;
+  saveGroupCardOrder();
+}
+
+function gpcDragEnd(e) {
+  e.currentTarget.classList.remove('gpc-dragging');
+  document.querySelectorAll('.gpc-drag-over')
+    .forEach(el => el.classList.remove('gpc-drag-over'));
+  _gpcDragSrc = null;
+  _gpcDragGroupId = null;
+  _gpcDragSection = null;
+}
 
 function renderGroups() {
   const el = document.getElementById('groups-list');
@@ -2906,14 +3323,32 @@ function renderGroups() {
     const totalQty = gProds.reduce((s,p) => s+p.qty, 0);
     const bgColor  = g.color || '#2a7d4f';
 
-    const paquetes = gProds.filter(p => p.group_type === 'paquete');
-    const sueltas  = gProds.filter(p => p.group_type !== 'paquete');
+    const paquetesRaw = gProds.filter(p => p.group_type === 'paquete');
+    const paquetes = applyGroupCardOrder(paquetesRaw, g.id, 'paquetes');
+    const sueltasRaw = gProds.filter(p => p.group_type !== 'paquete');
+    const sueltas  = applyGroupCardOrder(sueltasRaw, g.id, 'sueltas');
 
-    function makeCard(p) {
+    function makeCard(p, gid, sectionName) {
       const t  = getType(p.type_id);
       const sc = stockClass(p);
       const labels = { ok:'OK', low:'Bajo', out:'Sin stock' };
-      return `<div class="gpc stock-${sc}">
+      return `<div class="gpc stock-${sc}" draggable="true"
+          data-prod-id="${p.id}" data-group-id="${gid}" data-section="${sectionName}"
+          ondragstart="gpcDragStart(event)"
+          ondragover="gpcDragOver(event)"
+          ondragleave="gpcDragLeave(event)"
+          ondrop="gpcDrop(event)"
+          ondragend="gpcDragEnd(event)">
+        <div class="gpc-drag-handle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="9"  cy="5"  r="1" fill="currentColor"/>
+            <circle cx="9"  cy="12" r="1" fill="currentColor"/>
+            <circle cx="9"  cy="19" r="1" fill="currentColor"/>
+            <circle cx="15" cy="5"  r="1" fill="currentColor"/>
+            <circle cx="15" cy="12" r="1" fill="currentColor"/>
+            <circle cx="15" cy="19" r="1" fill="currentColor"/>
+          </svg>
+        </div>
         <div class="gpc-actions">
           <button class="gpc-btn" onclick="openEditStock('${p.id}')">Stock</button>
           <button class="gpc-btn remove" onclick="removeFromGroup('${p.id}')">✕</button>
@@ -2931,7 +3366,7 @@ function renderGroups() {
     const paquetesSection = paquetes.length ? `
       <div class="group-section-label">Paquetes · ${paquetes.length}</div>
       <div class="group-cards-grid">
-        ${paquetes.map(p => makeCard(p)).join('')}
+        ${paquetes.map(p => makeCard(p, g.id, 'paquetes')).join('')}
       </div>` : '';
 
     // Color filter for sueltas
@@ -2955,14 +3390,16 @@ function renderGroups() {
       <div class="group-section-label">Sueltas · ${sueltas.length}${activeColor ? ' · <span style="color:var(--accent)">'+activeColor+'</span>' : ''}</div>
       ${colorBtns}
       <div class="group-cards-grid">
-        ${visibleSueltas.map(p => makeCard(p)).join('')}
+        ${visibleSueltas.map(p => makeCard(p, g.id, 'sueltas')).join('')}
       </div>` : '';
 
     const emptyMsg = !paquetes.length && !sueltas.length
       ? '<div class="group-empty">Sin artículos — usa + para agregar</div>' : '';
 
+    const grpCollapsed = !_openGroups.has(g.id);
+
     return `<div class="group-block" id="group-block-${g.id}">
-      <div class="group-block-header">
+      <div class="group-block-header" onclick="toggleGroupCollapse('${g.id}', event)" style="cursor:pointer">
         <div class="group-block-title">
           <div class="group-block-icon" style="background:${bgColor}22;color:${bgColor}">${g.icon||'🗂️'}</div>
           <div>
@@ -2970,19 +3407,22 @@ function renderGroups() {
             <div class="group-block-meta">${gProds.length} artículos · ${totalQty} uds</div>
           </div>
         </div>
-        <div class="group-block-actions">
-          <button class="btn btn-secondary btn-sm" onclick="openAssignGroup('${g.id}')">
+        <div class="group-block-actions" style="display:flex;align-items:center;gap:6px">
+          <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();openAssignGroup('${g.id}')">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             Agregar
           </button>
-          <button class="btn btn-ghost btn-sm btn-icon" onclick="openEditGroup('${g.id}')">
+          <button class="btn btn-ghost btn-sm btn-icon" onclick="event.stopPropagation();openEditGroup('${g.id}')">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4z"/></svg>
           </button>
+          <svg id="gchev-${g.id}" class="group-collapse-chevron ${grpCollapsed?'collapsed':''}" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="${grpCollapsed?'transform:rotate(-90deg)':''}"><polyline points="6 9 12 15 18 9"/></svg>
         </div>
       </div>
-      ${paquetesSection}
-      ${sueltasSection}
-      ${emptyMsg}
+      <div id="gbody-${g.id}" class="group-body-wrap ${grpCollapsed?'collapsed':''}" style="${grpCollapsed?'display:none':''}">
+        ${paquetesSection}
+        ${sueltasSection}
+        ${emptyMsg}
+      </div>
     </div>`;
   }).join('');
 
@@ -3022,7 +3462,7 @@ function renderDashboardGroups() {
     const hasOut   = gProds.some(p=>stockClass(p)==='out');
     const bg       = g.color||'#2a7d4f';
     const badge    = hasOut?'sp-out':hasLow?'sp-low':'sp-ok';
-    return `<div class="dash-group-row" onclick="nav('grupos',document.querySelector('[data-page=grupos]'))">
+    return `<div class="dash-group-row" onclick="navToGroup('${g.id}')">
       <div style="display:flex;align-items:center;gap:10px">
         <div style="width:28px;height:28px;border-radius:7px;background:${bg}20;color:${bg};display:flex;align-items:center;justify-content:center;font-size:14px">${g.icon||'🗂️'}</div>
         <div>
@@ -3284,6 +3724,63 @@ function dl(name, content) {
   a.href = URL.createObjectURL(new Blob([content],{type:'text/csv;charset=utf-8;'}));
   a.download = name; a.click();
 }
+
+// ─── MOBILE BOTTOM NAV ────────────────────────────────────────────────────────
+function initMobileNav() {
+  const nav = document.getElementById('mobile-bottom-nav');
+  if (!nav) return;
+  nav.style.display = window.innerWidth <= 768 ? 'flex' : 'none';
+  // Set active state based on current page
+  const activePage = document.querySelector('.page.active')?.id?.replace('page-','') || 'dashboard';
+  updateMobileNav(activePage);
+}
+
+function updateMobileNav(page) {
+  document.querySelectorAll('.mbn-item').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.page === page);
+  });
+}
+
+window.addEventListener('resize', function() {
+  const nav = document.getElementById('mobile-bottom-nav');
+  if (nav) nav.style.display = window.innerWidth <= 768 ? 'flex' : 'none';
+});
+
+// Patch nav() to also update mobile nav active state
+const _origNav = nav;
+window.nav = function(page, btn) {
+  _origNav(page, btn);
+  updateMobileNav(page);
+};
+
+window.addEventListener('load', initMobileNav);
 </script>
+
+<!-- Mobile Bottom Navigation -->
+<nav class="mobile-bottom-nav" id="mobile-bottom-nav" style="display:none">
+  <button class="mbn-item" data-page="dashboard" onclick="nav('dashboard',document.querySelector('[data-page=dashboard]'));updateMobileNav('dashboard')">
+    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    Inicio
+  </button>
+  <button class="mbn-item" data-page="inventario" onclick="nav('inventario',document.querySelector('[data-page=inventario]'));updateMobileNav('inventario')">
+    <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+    Stock
+  </button>
+  <button class="mbn-item" data-page="salidas" onclick="nav('salidas',document.querySelector('[data-page=salidas]'));updateMobileNav('salidas')" style="position:relative">
+    <div style="position:absolute;top:-8px;left:50%;transform:translateX(-50%);width:48px;height:48px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(212,82,42,.4)">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+    </div>
+    <span style="margin-top:18px">Salida</span>
+  </button>
+  <button class="mbn-item" data-page="grupos" onclick="nav('grupos',document.querySelector('[data-page=grupos]'));updateMobileNav('grupos')">
+    <svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><rect x="3" y="4" width="2" height="4" rx="1"/><rect x="3" y="10" width="2" height="4" rx="1"/><rect x="3" y="16" width="2" height="4" rx="1"/></svg>
+    Grupos
+  </button>
+  <button class="mbn-item" data-page="historial" onclick="nav('historial',document.querySelector('[data-page=historial]'));updateMobileNav('historial')">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    Historial
+  </button>
+</nav>
+
 </body>
 </html>
