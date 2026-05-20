@@ -569,7 +569,7 @@ textarea { resize:vertical; min-height:72px; }
 
   /* ── Tables: horizontal scroll ── */
   .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  table { min-width: 560px; }
+  /* table min-width removed — mobile uses card layout */
   thead th, tbody td { padding: 10px 12px; font-size: 12.5px; }
 
   /* ── Filters bar ── */
@@ -833,6 +833,62 @@ tbody tr[draggable] { cursor:grab; } tbody tr[draggable]:active { cursor:grabbin
   /* Collab chips */
   .chip { font-size: 13px; padding: 5px 6px 5px 12px; }
   .chip-remove { width: 18px; height: 18px; font-size: 12px; }
+}
+
+
+/* ── MOBILE HISTORY & INVENTORY CARDS ── */
+@media (max-width: 768px) {
+  /* Remove forced min-width on tables */
+  table { min-width: 0; }
+  .table-wrap { border-radius: var(--r); overflow: hidden; }
+
+  /* History mobile cards */
+  .hist-card {
+    padding: 13px 16px; border-bottom: 1px solid var(--border);
+    background: var(--surface); display: flex; flex-direction: column; gap: 8px;
+  }
+  .hist-card:last-child { border-bottom: none; }
+  .hist-card-top {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  }
+  .hist-card-left { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
+  .hist-card-name { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hist-card-meta { font-size: 12px; color: var(--text3); }
+  .hist-card-qty {
+    font-family: var(--mono); font-size: 20px; font-weight: 700;
+    flex-shrink: 0; line-height: 1;
+  }
+  .hist-card-bottom {
+    display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  }
+  .hist-card-detail {
+    font-size: 12px; color: var(--text2); display: flex; align-items: center; gap: 4px;
+  }
+  .hist-card-comment {
+    font-size: 11.5px; color: var(--text3); font-style: italic;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px;
+  }
+
+  /* Inventory mobile cards */
+  .inv-card {
+    padding: 13px 16px; border-bottom: 1px solid var(--border);
+    background: var(--surface); display: flex; align-items: center; gap: 12px;
+  }
+  .inv-card:last-child { border-bottom: none; }
+  .inv-card-left { flex: 1; min-width: 0; }
+  .inv-card-type { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--text3); margin-bottom: 2px; }
+  .inv-card-name { font-size: 14px; font-weight: 600; letter-spacing: -.2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .inv-card-meta { font-size: 12px; color: var(--text3); font-family: var(--mono); margin-top: 2px; }
+  .inv-card-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; flex-shrink: 0; }
+  .inv-card-actions { display: flex; gap: 6px; }
+
+  /* Filter pills row (horizontal scroll) */
+  .filters-scroll {
+    display: flex; gap: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px; scrollbar-width: none;
+  }
+  .filters-scroll::-webkit-scrollbar { display: none; }
+  .filters-scroll select, .filters-scroll input { flex-shrink: 0; }
 }
 
 </style>
@@ -1820,13 +1876,15 @@ function renderPage(page) {
 function refreshAllViews() {
   const active = document.querySelector('.page.active')?.id?.replace('page-','');
   if (!active) return;
-  // For salidas/entradas: don't rebuild the product selector (loses selection)
-  // Just refresh the underlying data views and stock status
   if (active === 'salidas') {
-    checkSalidaStock();          // re-check stock with fresh data
-    renderRecentMoves('salida'); // refresh recent list
+    checkSalidaStock();
+    renderRecentMoves('salida');
   } else if (active === 'entradas') {
     renderRecentMoves('entrada');
+  } else if (active === 'grupos') {
+    // Don't re-render grupos during polling — it resets open/collapse state
+    // Only refresh underlying data silently; user controls visibility via clicks
+    renderDashboardGroups(); // keep dashboard summary in sync
   } else {
     renderPage(active);
   }
@@ -2018,6 +2076,8 @@ function renderDashboard() {
 
   document.getElementById('dash-content').innerHTML = html || `<div class="empty"><div class="empty-icon">🔍</div><h3>Sin resultados</h3><p>Ajusta los filtros para ver artículos</p></div>`;
   renderDashboardGroups();
+
+
 }
 
 // ─── INVENTARIO ───────────────────────────────────────────────────────────────
@@ -2072,33 +2132,63 @@ function renderInventario() {
 
   const isDraggable = !isFiltered;
 
-  document.getElementById('inv-table').innerHTML = `
-    <table id="inv-sortable-table">
-      <thead><tr>
-        ${isDraggable ? '<th style="width:28px"></th>' : ''}
-        <th>Categoría</th><th>Tipo</th><th>Género</th><th>Talla</th><th>Color</th><th>SKU</th><th>Stock</th><th>Acciones</th>
-      </tr></thead>
-      <tbody id="inv-tbody">${prods.map(p=>{
-        const t=getType(p.type_id); const cc=getCat(p.category_id);
-        return `<tr draggable="${isDraggable}" data-id="${p.id}">
-          ${isDraggable ? `<td><span class="drag-handle" title="Arrastrar para reordenar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="5" r="1" fill="currentColor"/><circle cx="9" cy="12" r="1" fill="currentColor"/><circle cx="9" cy="19" r="1" fill="currentColor"/><circle cx="15" cy="5" r="1" fill="currentColor"/><circle cx="15" cy="12" r="1" fill="currentColor"/><circle cx="15" cy="19" r="1" fill="currentColor"/></svg></span></td>` : ''}
-          <td><span style="font-size:13px;display:inline-flex;align-items:center;gap:5px">${getCatIcon(cc?.icon||'', '16px')} ${cc?.name||'—'}</span></td>
-          <td><strong>${t?.name||'—'}</strong></td>
-          <td><span class="badge badge-neutral">${p.gender}</span></td>
-          <td><span class="badge badge-neutral">${p.size}</span></td>
-          <td>${p.color}</td>
-          <td class="td-mono">${p.sku||'—'}</td>
-          <td>${stockPill(p)}</td>
-          <td style="display:flex;gap:5px;flex-wrap:wrap;">
-            <button class="btn btn-secondary btn-sm" onclick="openEditStock('${p.id}')">Stock</button>
-            <button class="btn btn-secondary btn-sm" onclick="openEditProduct('${p.id}')">Editar</button>
-            ${p.sku ? `<button class="btn btn-secondary btn-sm" onclick="copyNFCUrl('${p.sku}')" title="Copiar URL para etiqueta NFC" style="font-family:var(--mono);letter-spacing:.03em">NFC</button>` : '<span style="font-size:11px;color:var(--text3);padding:0 4px">Sin SKU</span>'}
-          </td>
-        </tr>`;
-      }).join('')}</tbody>
-    </table>`;
+  const isMobileInv = window.innerWidth <= 768;
 
-  if (isDraggable) initDragSort();
+  if (isMobileInv) {
+    // Mobile: card-based list
+    document.getElementById('inv-table').innerHTML =
+      '<div style="background:var(--surface);border-radius:var(--r);border:1px solid var(--border)">' +
+            prods.map(function(p) {
+        const t  = getType(p.type_id);
+        const cc = getCat(p.category_id);
+        const pid = p.id;
+        const lines = [
+          '<div class="inv-card">',
+            '<div class="inv-card-left">',
+              '<div class="inv-card-type">' + (t ? t.name : '?') + ' · ' + p.gender + '</div>',
+              '<div class="inv-card-name">' + p.color + '</div>',
+              '<div class="inv-card-meta">Talla ' + p.size + ' · ' + (p.sku || 'Sin SKU') + '</div>',
+            '</div>',
+            '<div class="inv-card-right">',
+              stockPill(p),
+              '<div class="inv-card-actions">',
+                '<button class="btn btn-secondary btn-sm" onclick="openEditStock(\''+pid+'\')">Stock</button>',
+                '<button class="btn btn-secondary btn-sm" onclick="openEditProduct(\''+pid+'\')">&#xB7;&#xB7;&#xB7;</button>',
+              '</div>',
+            '</div>',
+          '</div>'
+        ];
+        return lines.join('');
+      }).join('') + '</div>';
+  } else {
+    // Desktop: full table
+    document.getElementById('inv-table').innerHTML = `
+      <table id="inv-sortable-table">
+        <thead><tr>
+          ${isDraggable ? '<th style="width:28px"></th>' : ''}
+          <th>Categoría</th><th>Tipo</th><th>Género</th><th>Talla</th><th>Color</th><th>SKU</th><th>Stock</th><th>Acciones</th>
+        </tr></thead>
+        <tbody id="inv-tbody">${prods.map(p=>{
+          const t=getType(p.type_id); const cc=getCat(p.category_id);
+          return `<tr draggable="${isDraggable}" data-id="${p.id}">
+            ${isDraggable ? `<td><span class="drag-handle" title="Arrastrar para reordenar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="5" r="1" fill="currentColor"/><circle cx="9" cy="12" r="1" fill="currentColor"/><circle cx="9" cy="19" r="1" fill="currentColor"/><circle cx="15" cy="5" r="1" fill="currentColor"/><circle cx="15" cy="12" r="1" fill="currentColor"/><circle cx="15" cy="19" r="1" fill="currentColor"/></svg></span></td>` : ''}
+            <td><span style="font-size:13px;display:inline-flex;align-items:center;gap:5px">${getCatIcon(cc?.icon||'', '16px')} ${cc?.name||'—'}</span></td>
+            <td><strong>${t?.name||'—'}</strong></td>
+            <td><span class="badge badge-neutral">${p.gender}</span></td>
+            <td><span class="badge badge-neutral">${p.size}</span></td>
+            <td>${p.color}</td>
+            <td class="td-mono">${p.sku||'—'}</td>
+            <td>${stockPill(p)}</td>
+            <td style="display:flex;gap:5px;flex-wrap:wrap;">
+              <button class="btn btn-secondary btn-sm" onclick="openEditStock('${p.id}')">Stock</button>
+              <button class="btn btn-secondary btn-sm" onclick="openEditProduct('${p.id}')">Editar</button>
+              ${p.sku ? `<button class="btn btn-secondary btn-sm" onclick="copyNFCUrl('${p.sku}')" title="Copiar URL para etiqueta NFC" style="font-family:var(--mono);letter-spacing:.03em">NFC</button>` : '<span style="font-size:11px;color:var(--text3);padding:0 4px">Sin SKU</span>'}
+            </td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>`;
+    if (isDraggable) initDragSort();
+  }
 }
 
 // ─── DRAG & DROP SORT ─────────────────────────────────────────────────────────
@@ -2468,24 +2558,66 @@ function renderHistorial() {
   });
   document.getElementById('h-count').textContent = `${list.length} registros`;
   if (!list.length) { document.getElementById('hist-table').innerHTML = `<div class="empty"><h3>Sin resultados</h3></div>`; return; }
-  document.getElementById('hist-table').innerHTML = `
-    <table>
-      <thead><tr><th>Tipo</th><th>Artículo</th><th>Cat.</th><th>Talla</th><th>Cant.</th><th>Fecha</th><th>Persona</th><th>UDN</th><th>Comentario</th></tr></thead>
-      <tbody>${list.map(m=>{
-        const p=getProd(m.product_id); const t=getType(p?.type_id); const c=getCat(p?.category_id);
-        return `<tr>
-          <td><span class="badge badge-${m.type}">${m.type}</span></td>
-          <td><strong>${t?.name||'—'}</strong> ${p?.color||''}</td>
-          <td><span style="display:inline-flex;align-items:center;gap:5px">${getCatIcon(c?.icon||'','15px')} ${c?.name||'—'}</span></td>
-          <td><span class="badge badge-neutral">${p?.size||'—'}</span></td>
-          <td class="td-mono" style="color:${m.type==='entrada'?'var(--green)':'var(--red)'};font-weight:600">${m.type==='entrada'?'+':'-'}${m.qty}</td>
-          <td style="white-space:nowrap">${fmtDate(m.date)}</td>
-          <td>${m.person!=='—'?m.person:'<span style="color:var(--text3)">—</span>'}</td>
-          <td>${m.branch!=='—'?m.branch:'<span style="color:var(--text3)">—</span>'}</td>
-          <td style="font-size:12px;color:var(--text3);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.comment||'—'}</td>
-        </tr>`;
-      }).join('')}</tbody>
-    </table>`;
+  const isMobile = window.innerWidth <= 768;
+
+  if (isMobile) {
+    // Mobile: card-based layout
+    document.getElementById('hist-table').innerHTML =
+      '<div style="background:var(--surface);border-radius:var(--r);border:1px solid var(--border)">' +
+      list.map(m => {
+        const p = getProd(m.product_id);
+        const t = getType(p?.type_id);
+        const cc = getCat(p?.category_id);
+        const isIn = m.type === 'entrada';
+        const qtyColor = isIn ? 'var(--green)' : 'var(--red)';
+        const sign     = isIn ? '+' : '−';
+        return '<div class="hist-card">' +
+          '<div class="hist-card-top">' +
+            '<div class="hist-card-left">' +
+              '<span class="badge badge-' + m.type + '">' + m.type + '</span>' +
+              '<span class="hist-card-name">' + (t?.name||'—') + ' ' + (p?.color||'') + '</span>' +
+            '</div>' +
+            '<div class="hist-card-qty" style="color:' + qtyColor + '">' + sign + m.qty + '</div>' +
+          '</div>' +
+          '<div class="hist-card-bottom">' +
+            '<span class="hist-card-detail">' +
+              '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>' +
+              fmtDate(m.date) +
+            '</span>' +
+            (p?.size ? '<span class="badge badge-neutral">' + p.size + '</span>' : '') +
+            (m.person && m.person !== '—' ?
+              '<span class="hist-card-detail">' +
+                '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>' +
+                m.person +
+              '</span>' : '') +
+            (m.branch && m.branch !== '—' ?
+              '<span class="hist-card-detail" style="color:var(--text3)">' + m.branch + '</span>' : '') +
+            (m.comment ?
+              '<span class="hist-card-comment">' + m.comment + '</span>' : '') +
+          '</div>' +
+        '</div>';
+      }).join('') + '</div>';
+  } else {
+    // Desktop: full table
+    document.getElementById('hist-table').innerHTML = `
+      <table>
+        <thead><tr><th>Tipo</th><th>Artículo</th><th>Cat.</th><th>Talla</th><th>Cant.</th><th>Fecha</th><th>Persona</th><th>UDN</th><th>Comentario</th></tr></thead>
+        <tbody>${list.map(m=>{
+          const p=getProd(m.product_id); const t=getType(p?.type_id); const c=getCat(p?.category_id);
+          return `<tr>
+            <td><span class="badge badge-${m.type}">${m.type}</span></td>
+            <td><strong>${t?.name||'—'}</strong> ${p?.color||''}</td>
+            <td><span style="display:inline-flex;align-items:center;gap:5px">${getCatIcon(c?.icon||'','15px')} ${c?.name||'—'}</span></td>
+            <td><span class="badge badge-neutral">${p?.size||'—'}</span></td>
+            <td class="td-mono" style="color:${m.type==='entrada'?'var(--green)':'var(--red)'};font-weight:600">${m.type==='entrada'?'+':'-'}${m.qty}</td>
+            <td style="white-space:nowrap">${fmtDate(m.date)}</td>
+            <td>${m.person!=='—'?m.person:'<span style="color:var(--text3)">—</span>'}</td>
+            <td>${m.branch!=='—'?m.branch:'<span style="color:var(--text3)">—</span>'}</td>
+            <td style="font-size:12px;color:var(--text3);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.comment||'—'}</td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>`;
+  }
 }
 
 // ─── CATÁLOGO ─────────────────────────────────────────────────────────────────
@@ -3415,10 +3547,10 @@ function renderGroups() {
           <button class="btn btn-ghost btn-sm btn-icon" onclick="event.stopPropagation();openEditGroup('${g.id}')">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4z"/></svg>
           </button>
-          <svg id="gchev-${g.id}" class="group-collapse-chevron ${grpCollapsed?'collapsed':''}" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="${grpCollapsed?'transform:rotate(-90deg)':''}"><polyline points="6 9 12 15 18 9"/></svg>
+          <svg id="gchev-${g.id}" class="group-collapse-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
         </div>
       </div>
-      <div id="gbody-${g.id}" class="group-body-wrap ${grpCollapsed?'collapsed':''}" style="${grpCollapsed?'display:none':''}">
+      <div id="gbody-${g.id}" class="group-body-wrap">
         ${paquetesSection}
         ${sueltasSection}
         ${emptyMsg}
@@ -3427,6 +3559,15 @@ function renderGroups() {
   }).join('');
 
   renderDashboardGroups();
+
+  // Apply collapse state after DOM is built
+  GROUPS.forEach(function(g) {
+    const body = document.getElementById('gbody-' + g.id);
+    const chev = document.getElementById('gchev-' + g.id);
+    const isOpen = _openGroups.has(g.id);
+    if (body) body.style.display = isOpen ? '' : 'none';
+    if (chev) chev.style.transform = isOpen ? '' : 'rotate(-90deg)';
+  });
 }
 function toggleGroup(id) {
   if (_openGroups.has(id)) _openGroups.delete(id);
