@@ -975,6 +975,10 @@ tbody tr[draggable] { cursor:grab; } tbody tr[draggable]:active { cursor:grabbin
   <polyline points="2.24 6.57 2.24 17.65 11.99 23"/></svg>
         <span>Inventario</span>
       </button>
+      <button class="nav-item" data-page="stock" onclick="nav('stock',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+        <span>Stock</span>
+      </button>
       <div class="nav-group-label">Operaciones</div>
       <button class="nav-item" data-page="entradas" onclick="nav('entradas',this)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><line x1="12.03" y1="1" x2="12.03" y2="23"/>
@@ -989,6 +993,10 @@ tbody tr[draggable] { cursor:grab; } tbody tr[draggable]:active { cursor:grabbin
       <button class="nav-item" data-page="historial" onclick="nav('historial',this)">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
         <span>Historial</span>
+      </button>
+      <button class="nav-item" data-page="reportes" onclick="nav('reportes',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+        <span>Reportes</span>
       </button>
       <div class="nav-group-label">Configuración</div>
       <button class="nav-item" data-page="catalogo" onclick="nav('catalogo',this)">
@@ -1240,6 +1248,116 @@ tbody tr[draggable] { cursor:grab; } tbody tr[draggable]:active { cursor:grabbin
           </button>
         </div>
         <div id="groups-list"></div>
+      </div>
+
+      <!-- ═══ STOCK ═══ -->
+      <div id="page-stock" class="page">
+        <div class="sh">
+          <div>
+            <div class="sh-t">Stock</div>
+            <div class="sh-s">Vista rápida de existencias · busca por nombre, SKU, talla o color</div>
+          </div>
+        </div>
+        <!-- Search bar -->
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:20px;flex-wrap:wrap;">
+          <div style="position:relative;flex:1;min-width:200px;">
+            <svg style="position:absolute;left:11px;top:50%;transform:translateY(-50%);width:15px;height:15px;stroke:var(--text3);fill:none;stroke-width:2;pointer-events:none" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="stk-q" placeholder="Buscar artículo, SKU, talla, color..." oninput="renderStock()"
+              style="padding-left:34px;font-size:14px;width:100%">
+          </div>
+          <select id="stk-cat" onchange="renderStock()" style="font-size:13px;min-width:140px;">
+            <option value="">Todas las categorías</option>
+          </select>
+          <select id="stk-stf" onchange="renderStock()" style="font-size:13px;min-width:130px;">
+            <option value="">Todo el stock</option>
+            <option value="ok">Stock OK</option>
+            <option value="low">Stock bajo</option>
+            <option value="out">Sin stock</option>
+          </select>
+        </div>
+        <!-- Summary row -->
+        <div id="stk-summary" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;"></div>
+        <!-- Stock list -->
+        <div id="stk-list"></div>
+      </div>
+
+      <!-- ═══ REPORTES ═══ -->
+      <div id="page-reportes" class="page">
+        <div class="sh">
+          <div><div class="sh-t">Reportes</div><div class="sh-s">Descarga reportes detallados de entradas y salidas</div></div>
+        </div>
+        <!-- Filters -->
+        <div class="card" style="margin-bottom:18px;">
+          <div style="font-size:13px;font-weight:600;margin-bottom:14px;color:var(--text2)">Filtros del reporte</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px;">
+            <div class="fg">
+              <label>Desde</label>
+              <input type="date" id="rpt-from">
+            </div>
+            <div class="fg">
+              <label>Hasta</label>
+              <input type="date" id="rpt-to">
+            </div>
+            <div class="fg">
+              <label>Categoría</label>
+              <select id="rpt-cat"><option value="">Todas</option></select>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-ghost btn-sm" onclick="setRptRange('week')">Esta semana</button>
+            <button class="btn btn-ghost btn-sm" onclick="setRptRange('month')">Este mes</button>
+            <button class="btn btn-ghost btn-sm" onclick="setRptRange('quarter')">Últimos 3 meses</button>
+            <button class="btn btn-ghost btn-sm" onclick="setRptRange('all')">Todo el historial</button>
+          </div>
+        </div>
+        <!-- Stats preview -->
+        <div id="rpt-stats" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:22px;"></div>
+        <!-- Download buttons -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:24px;">
+          <!-- Salidas report -->
+          <div class="card" style="display:flex;flex-direction:column;gap:14px;">
+            <div style="display:flex;align-items:flex-start;gap:12px;">
+              <div style="width:40px;height:40px;background:var(--red2);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+              </div>
+              <div>
+                <div style="font-size:14px;font-weight:600;margin-bottom:3px;">Reporte de Salidas</div>
+                <div style="font-size:12px;color:var(--text3);line-height:1.5;">Todas las entregas con colaborador, UDN, artículo, talla, fecha y cantidad</div>
+              </div>
+            </div>
+            <div id="rpt-salidas-count" style="font-size:12px;color:var(--text3);font-family:var(--mono);"></div>
+            <button class="btn btn-accent" onclick="downloadReport('salida')" style="width:100%;justify-content:center;">
+              <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+              Descargar CSV — Salidas
+            </button>
+          </div>
+          <!-- Entradas report -->
+          <div class="card" style="display:flex;flex-direction:column;gap:14px;">
+            <div style="display:flex;align-items:flex-start;gap:12px;">
+              <div style="width:40px;height:40px;background:var(--green2);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+              </div>
+              <div>
+                <div style="font-size:14px;font-weight:600;margin-bottom:3px;">Reporte de Entradas</div>
+                <div style="font-size:12px;color:var(--text3);line-height:1.5;">Todas las recepciones con artículo, categoría, talla, fecha, cantidad y comentario</div>
+              </div>
+            </div>
+            <div id="rpt-entradas-count" style="font-size:12px;color:var(--text3);font-family:var(--mono);"></div>
+            <button class="btn btn-green" onclick="downloadReport('entrada')" style="width:100%;justify-content:center;">
+              <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+              Descargar CSV — Entradas
+            </button>
+          </div>
+        </div>
+        <!-- Preview table -->
+        <div class="sh" style="margin-bottom:12px;">
+          <div style="font-family:var(--display);font-size:15px;font-weight:700;">Vista previa</div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-secondary btn-sm" id="rpt-prev-tab-sal" onclick="setRptPreviewTab('salida')" style="font-weight:600;">Salidas</button>
+            <button class="btn btn-ghost btn-sm" id="rpt-prev-tab-ent" onclick="setRptPreviewTab('entrada')">Entradas</button>
+          </div>
+        </div>
+        <div class="table-wrap" id="rpt-preview-table"></div>
       </div>
 
       <!-- ═══ COLABORADORES ═══ -->
@@ -1849,7 +1967,8 @@ async function dbDelete(table, id) {
 // ─── NAVIGATION ───────────────────────────────────────────────────────────────
 const PAGE_TITLES = {
   dashboard:'Dashboard', inventario:'Inventario', entradas:'Entradas',
-  salidas:'Salidas', historial:'Historial', catalogo:'Catálogo', colaboradores:'Colaboradores', grupos:'Grupos'
+  salidas:'Salidas', historial:'Historial', catalogo:'Catálogo', colaboradores:'Colaboradores', grupos:'Grupos',
+  stock:'Stock', reportes:'Reportes'
 };
 
 function nav(page, btn) {
@@ -1871,6 +1990,8 @@ function renderPage(page) {
   if (page === 'catalogo')   renderCatalog();
   if (page === 'colaboradores') renderCollaborators();
   if (page === 'grupos')        renderGroups();
+  if (page === 'stock')         renderStock();
+  if (page === 'reportes')      renderReportes();
 }
 
 function refreshAllViews() {
@@ -1882,9 +2003,12 @@ function refreshAllViews() {
   } else if (active === 'entradas') {
     renderRecentMoves('entrada');
   } else if (active === 'grupos') {
-    // Don't re-render grupos during polling — it resets open/collapse state
-    // Only refresh underlying data silently; user controls visibility via clicks
-    renderDashboardGroups(); // keep dashboard summary in sync
+    renderDashboardGroups();
+  } else if (active === 'stock') {
+    renderStock();
+  } else if (active === 'reportes') {
+    updateRptStats();
+    renderRptPreview(_rptPreviewTab);
   } else {
     renderPage(active);
   }
@@ -1915,6 +2039,18 @@ function populateFilterSelects() {
     const cur = ic.value;
     ic.innerHTML = '<option value="">Todas las categorías</option>' + CATS.map(c=>`<option value="${c.id}" ${c.id===cur?'selected':''}>${c.name}</option>`).join('');
     updateInvTypeFilter();
+  }
+  // Stock cat filter
+  const sc = document.getElementById('stk-cat');
+  if (sc) {
+    const cur = sc.value;
+    sc.innerHTML = '<option value="">Todas las categorías</option>' + CATS.map(c=>`<option value="${c.id}" ${c.id===cur?'selected':''}>${c.name}</option>`).join('');
+  }
+  // Reportes cat filter
+  const rptc = document.getElementById('rpt-cat');
+  if (rptc) {
+    const cur = rptc.value;
+    rptc.innerHTML = '<option value="">Todas</option>' + CATS.map(c=>`<option value="${c.id}" ${c.id===cur?'selected':''}>${c.name}</option>`).join('');
   }
   // New product cat — only refresh if modal is CLOSED (avoid resetting user selection)
   const newProdModal = document.getElementById('m-new-product');
@@ -3841,6 +3977,260 @@ function showNFCModal(sku, url) {
     </div>`;
   m.addEventListener('click', e => { if (e.target === m) m.remove(); });
   document.body.appendChild(m);
+}
+
+// ─── STOCK PAGE ───────────────────────────────────────────────────────────────
+function renderStock() {
+  // Populate category filter once
+  const stkCat = document.getElementById('stk-cat');
+  if (stkCat && stkCat.options.length <= 1) {
+    stkCat.innerHTML = '<option value="">Todas las categorías</option>' +
+      CATS.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+  }
+
+  const q    = (document.getElementById('stk-q')?.value||'').toLowerCase();
+  const catF = document.getElementById('stk-cat')?.value||'';
+  const stF  = document.getElementById('stk-stf')?.value||'';
+
+  let prods = PRODS.filter(p => {
+    if (catF && p.category_id !== catF) return false;
+    if (stF === 'low' && !(p.qty > 0 && p.qty < (p.low_stock_threshold||5))) return false;
+    if (stF === 'out' && p.qty !== 0) return false;
+    if (q) {
+      const t = getType(p.type_id); const c = getCat(p.category_id);
+      const str = [t?.name, p.color, p.size, p.gender, p.sku, c?.name].join(' ').toLowerCase();
+      if (!str.includes(q)) return false;
+    }
+    return true;
+  });
+
+  // Summary pills
+  const total = prods.reduce((s,p)=>s+p.qty,0);
+  const low   = prods.filter(p=>p.qty>0&&p.qty<(p.low_stock_threshold||5)).length;
+  const out   = prods.filter(p=>p.qty===0).length;
+  document.getElementById('stk-summary').innerHTML = `
+    <div class="summary-pill" style="min-width:120px;flex:0;">
+      <div class="pill-icon">📦</div>
+      <div><div class="pill-val">${prods.length}</div><div class="pill-lbl">Referencias</div></div>
+    </div>
+    <div class="summary-pill" style="min-width:120px;flex:0;">
+      <div class="pill-icon">🔢</div>
+      <div><div class="pill-val">${total}</div><div class="pill-lbl">Unidades totales</div></div>
+    </div>
+    <div class="summary-pill pill-warn" style="min-width:120px;flex:0;">
+      <div class="pill-icon">⚠️</div>
+      <div><div class="pill-val">${low}</div><div class="pill-lbl">Stock bajo</div></div>
+    </div>
+    <div class="summary-pill pill-danger" style="min-width:120px;flex:0;">
+      <div class="pill-icon">🚫</div>
+      <div><div class="pill-val">${out}</div><div class="pill-lbl">Sin stock</div></div>
+    </div>`;
+
+  if (!prods.length) {
+    document.getElementById('stk-list').innerHTML = `<div class="empty"><div class="empty-icon">🔍</div><h3>Sin resultados</h3><p>Ajusta la búsqueda o los filtros</p></div>`;
+    return;
+  }
+
+  // Group by category for display
+  const catGroups = {};
+  prods.forEach(p => {
+    const cid = p.category_id;
+    if (!catGroups[cid]) catGroups[cid] = [];
+    catGroups[cid].push(p);
+  });
+
+  let html = '';
+  Object.keys(catGroups).forEach(cid => {
+    const cat = getCat(cid);
+    const items = catGroups[cid];
+    html += `<div style="margin-bottom:24px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border);">
+        ${getCatIcon(cat?.icon||'', '16px')}
+        <span style="font-family:var(--display);font-size:14px;font-weight:700;color:${cat?.color||'var(--text)'}">${cat?.name||'?'}</span>
+        <span style="font-size:12px;color:var(--text3);font-family:var(--mono)">${items.length} refs · ${items.reduce((s,p)=>s+p.qty,0)} uds</span>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;">`;
+
+    items.forEach((p, idx) => {
+      const t = getType(p.type_id);
+      const sc = stockClass(p);
+      const scColors = { ok: 'var(--green)', low: 'var(--amber)', out: 'var(--red)' };
+      const scLabels = { ok: 'OK', low: 'Bajo', out: 'Sin stock' };
+      const scBg     = { ok: 'var(--green2)', low: 'var(--amber2)', out: 'var(--red2)' };
+      html += `<div style="display:flex;align-items:center;padding:11px 16px;${idx>0?'border-top:1px solid var(--border)':''};gap:14px;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:2px;">${t?.name||'?'} · ${p.gender}</div>
+          <div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.color}</div>
+          <div style="font-size:12px;color:var(--text3);font-family:var(--mono);margin-top:1px;">Talla ${p.size}${p.sku?' · '+p.sku:''}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
+          <div style="text-align:right;">
+            <div style="font-family:var(--mono);font-size:26px;font-weight:700;line-height:1;color:${scColors[sc]}">${p.qty}</div>
+            <div style="font-size:10px;color:var(--text3);">unidades</div>
+          </div>
+          <span style="background:${scBg[sc]};color:${scColors[sc]};font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;">${scLabels[sc]}</span>
+          ${p.sku?`<button class="btn btn-secondary btn-sm" onclick="copyNFCUrl('${p.sku}')" title="Copiar URL NFC" style="font-size:10.5px;font-family:var(--mono)">NFC</button>`:''}
+        </div>
+      </div>`;
+    });
+
+    html += `</div></div>`;
+  });
+
+  document.getElementById('stk-list').innerHTML = html;
+}
+
+// ─── REPORTES PAGE ────────────────────────────────────────────────────────────
+let _rptPreviewTab = 'salida';
+
+function renderReportes() {
+  // Set default dates (current month)
+  const today = new Date();
+  const fromEl = document.getElementById('rpt-from');
+  const toEl   = document.getElementById('rpt-to');
+  if (fromEl && !fromEl.value) {
+    fromEl.value = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().slice(0,10);
+  }
+  if (toEl && !toEl.value) {
+    toEl.value = today.toISOString().slice(0,10);
+  }
+  // Populate category filter
+  const rc = document.getElementById('rpt-cat');
+  if (rc && rc.options.length <= 1) {
+    rc.innerHTML = '<option value="">Todas</option>' + CATS.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+  }
+  updateRptStats();
+  renderRptPreview(_rptPreviewTab);
+}
+
+function setRptRange(range) {
+  const today = new Date();
+  const from = document.getElementById('rpt-from');
+  const to   = document.getElementById('rpt-to');
+  to.value = today.toISOString().slice(0,10);
+  if (range === 'week') {
+    const d = new Date(today); d.setDate(d.getDate() - 6);
+    from.value = d.toISOString().slice(0,10);
+  } else if (range === 'month') {
+    from.value = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().slice(0,10);
+  } else if (range === 'quarter') {
+    const d = new Date(today); d.setMonth(d.getMonth() - 3);
+    from.value = d.toISOString().slice(0,10);
+  } else {
+    from.value = '2020-01-01';
+  }
+  updateRptStats();
+  renderRptPreview(_rptPreviewTab);
+}
+
+function getRptFiltered(tipo) {
+  const from  = document.getElementById('rpt-from')?.value || '';
+  const to    = document.getElementById('rpt-to')?.value   || '';
+  const catF  = document.getElementById('rpt-cat')?.value  || '';
+  return MOVS.filter(m => {
+    if (m.type !== tipo) return false;
+    if (from && m.date < from) return false;
+    if (to   && m.date > to)   return false;
+    if (catF) {
+      const p = getProd(m.product_id);
+      if (p?.category_id !== catF) return false;
+    }
+    return true;
+  });
+}
+
+function updateRptStats() {
+  const salidas  = getRptFiltered('salida');
+  const entradas = getRptFiltered('entrada');
+  const sQty  = salidas.reduce((s,m)=>s+m.qty,0);
+  const eQty  = entradas.reduce((s,m)=>s+m.qty,0);
+  const uniquePeople = new Set(salidas.map(m=>m.person).filter(p=>p&&p!=='—')).size;
+  document.getElementById('rpt-stats').innerHTML = `
+    <div class="summary-pill"><div class="pill-icon">📤</div><div><div class="pill-val" style="color:var(--red)">${salidas.length}</div><div class="pill-lbl">Registros salida</div></div></div>
+    <div class="summary-pill"><div class="pill-icon">📦</div><div><div class="pill-val" style="color:var(--red)">${sQty}</div><div class="pill-lbl">Uds entregadas</div></div></div>
+    <div class="summary-pill"><div class="pill-icon">👥</div><div><div class="pill-val">${uniquePeople}</div><div class="pill-lbl">Colaboradores</div></div></div>
+    <div class="summary-pill"><div class="pill-icon">📥</div><div><div class="pill-val" style="color:var(--green)">${entradas.length}</div><div class="pill-lbl">Registros entrada</div></div></div>
+    <div class="summary-pill"><div class="pill-icon">📦</div><div><div class="pill-val" style="color:var(--green)">${eQty}</div><div class="pill-lbl">Uds recibidas</div></div></div>`;
+  document.getElementById('rpt-salidas-count').textContent  = `${salidas.length} registros · ${sQty} unidades entregadas`;
+  document.getElementById('rpt-entradas-count').textContent = `${entradas.length} registros · ${eQty} unidades recibidas`;
+}
+
+function setRptPreviewTab(tab) {
+  _rptPreviewTab = tab;
+  document.getElementById('rpt-prev-tab-sal').className = tab==='salida'?'btn btn-secondary btn-sm':'btn btn-ghost btn-sm';
+  document.getElementById('rpt-prev-tab-ent').className = tab==='entrada'?'btn btn-secondary btn-sm':'btn btn-ghost btn-sm';
+  renderRptPreview(tab);
+}
+
+function renderRptPreview(tipo) {
+  const list = getRptFiltered(tipo).slice(0, 50);
+  if (!list.length) {
+    document.getElementById('rpt-preview-table').innerHTML = `<div class="empty" style="padding:30px"><h3>Sin datos para el período seleccionado</h3></div>`;
+    return;
+  }
+  if (tipo === 'salida') {
+    document.getElementById('rpt-preview-table').innerHTML = `
+      <table>
+        <thead><tr><th>Fecha</th><th>Artículo</th><th>Categoría</th><th>Talla</th><th>Color</th><th>SKU</th><th>Cant.</th><th>Colaborador</th><th>UDN</th><th>Comentario</th></tr></thead>
+        <tbody>${list.map(m=>{
+          const p=getProd(m.product_id); const t=getType(p?.type_id); const c=getCat(p?.category_id);
+          return `<tr>
+            <td style="white-space:nowrap">${fmtDate(m.date)}</td>
+            <td><strong>${t?.name||'—'}</strong></td>
+            <td><span style="display:inline-flex;align-items:center;gap:4px">${getCatIcon(c?.icon||'','14px')} ${c?.name||'—'}</span></td>
+            <td><span class="badge badge-neutral">${p?.size||'—'}</span></td>
+            <td>${p?.color||'—'}</td>
+            <td class="td-mono">${p?.sku||'—'}</td>
+            <td class="td-mono" style="color:var(--red);font-weight:700;">−${m.qty}</td>
+            <td>${m.person!=='—'?`<strong>${m.person}</strong>`:'<span style="color:var(--text3)">—</span>'}</td>
+            <td>${m.branch!=='—'?m.branch:'<span style="color:var(--text3)">—</span>'}</td>
+            <td style="font-size:11.5px;color:var(--text3);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.comment||'—'}</td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>`;
+  } else {
+    document.getElementById('rpt-preview-table').innerHTML = `
+      <table>
+        <thead><tr><th>Fecha</th><th>Artículo</th><th>Categoría</th><th>Talla</th><th>Color</th><th>SKU</th><th>Cant.</th><th>Comentario</th></tr></thead>
+        <tbody>${list.map(m=>{
+          const p=getProd(m.product_id); const t=getType(p?.type_id); const c=getCat(p?.category_id);
+          return `<tr>
+            <td style="white-space:nowrap">${fmtDate(m.date)}</td>
+            <td><strong>${t?.name||'—'}</strong></td>
+            <td><span style="display:inline-flex;align-items:center;gap:4px">${getCatIcon(c?.icon||'','14px')} ${c?.name||'—'}</span></td>
+            <td><span class="badge badge-neutral">${p?.size||'—'}</span></td>
+            <td>${p?.color||'—'}</td>
+            <td class="td-mono">${p?.sku||'—'}</td>
+            <td class="td-mono" style="color:var(--green);font-weight:700;">+${m.qty}</td>
+            <td style="font-size:11.5px;color:var(--text3);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.comment||'—'}</td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>`;
+  }
+}
+
+function downloadReport(tipo) {
+  updateRptStats();
+  const list = getRptFiltered(tipo);
+  const from = document.getElementById('rpt-from')?.value||'inicio';
+  const to   = document.getElementById('rpt-to')?.value||'hoy';
+  let csv = '';
+  if (tipo === 'salida') {
+    csv = '\uFEFFID,Fecha,Artículo,Categoría,Talla,Color,SKU,Cantidad,Colaborador,UDN,Comentario\n';
+    list.forEach(m => {
+      const p=getProd(m.product_id); const t=getType(p?.type_id); const c=getCat(p?.category_id);
+      csv += `"${m.id}","${m.date}","${t?.name||''}","${c?.name||''}","${p?.size||''}","${p?.color||''}","${p?.sku||''}",${m.qty},"${m.person}","${m.branch}","${m.comment||''}"\n`;
+    });
+  } else {
+    csv = '\uFEFFID,Fecha,Artículo,Categoría,Talla,Color,SKU,Cantidad,Comentario\n';
+    list.forEach(m => {
+      const p=getProd(m.product_id); const t=getType(p?.type_id); const c=getCat(p?.category_id);
+      csv += `"${m.id}","${m.date}","${t?.name||''}","${c?.name||''}","${p?.size||''}","${p?.color||''}","${p?.sku||''}",${m.qty},"${m.comment||''}"\n`;
+    });
+  }
+  const fname = `unistock_${tipo}s_${from}_${to}.csv`;
+  dl(fname, csv);
+  toast(`Descargando reporte de ${tipo}s (${list.length} registros)`,'t-green');
 }
 
 // ─── EXPORT ───────────────────────────────────────────────────────────────────

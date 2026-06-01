@@ -5,65 +5,28 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>UniStock — Entrega Rapida</title>
+<title>UniStock — Entrega Rápida</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-
-<!-- PWA -->
 <link rel="manifest" href="/manifest.json">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="UniStock">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 
-<!-- Service Worker + NFC handler -->
 <script>
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', function() {
-    navigator.serviceWorker.register('/sw.js');
-  });
+  window.addEventListener('load', function() { navigator.serviceWorker.register('/sw.js'); });
 }
-
-// Pick up pending NFC navigation
 (function() {
   try {
     var raw = localStorage.getItem('unistock-nfc-pending');
     if (!raw) return;
     var data = JSON.parse(raw);
-    if (Date.now() - data.ts > 30000) {
-      localStorage.removeItem('unistock-nfc-pending');
-      return;
-    }
+    if (Date.now() - data.ts > 30000) { localStorage.removeItem('unistock-nfc-pending'); return; }
     localStorage.removeItem('unistock-nfc-pending');
-    var sku    = data.sku;
-    var action = data.action || 'salida';
+    var sku = data.sku;
     if (!sku) return;
-
-    var isOnEntrega = window.location.pathname.indexOf('entrega') !== -1;
-    var isOnIndex   = window.location.pathname.indexOf('index')   !== -1
-                   || window.location.pathname === '/';
-
-    if (action === 'salida' && !isOnEntrega) {
-      window.location.href = '/entrega.html?sku=' + encodeURIComponent(sku);
-    } else if (action === 'salida' && isOnEntrega) {
-      window.addEventListener('DOMContentLoaded', function() {
-        setTimeout(function() {
-          if (typeof loadProductBySKU === 'function') loadProductBySKU(sku.toUpperCase());
-        }, 600);
-      });
-    } else if (action === 'stock') {
-      if (!isOnIndex) {
-        window.location.href = '/index.html?view=stock&sku=' + encodeURIComponent(sku);
-      } else {
-        window.addEventListener('DOMContentLoaded', function() {
-          setTimeout(function() {
-            var el = document.getElementById('dash-search');
-            if (el) { el.value = sku; el.dispatchEvent(new Event('input')); }
-            if (typeof nav === 'function') nav('dashboard', document.querySelector('[data-page=dashboard]'));
-          }, 700);
-        });
-      }
-    }
+    window.addEventListener('DOMContentLoaded', function() {
+      setTimeout(function() { if (typeof loadProductBySKU === 'function') loadProductBySKU(sku.toUpperCase()); }, 600);
+    });
   } catch(e) {}
 })();
 </script>
@@ -92,13 +55,11 @@ if ('serviceWorker' in navigator) {
   --safe-t:  env(safe-area-inset-top, 0px);
   --safe-b:  env(safe-area-inset-bottom, 16px);
 }
-
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { height: 100%; -webkit-text-size-adjust: 100%; }
 body {
   font-family: var(--font); background: var(--bg); color: var(--text);
-  min-height: 100vh; min-height: 100dvh;
-  display: flex; flex-direction: column;
+  min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -134,7 +95,7 @@ body {
 /* ── MAIN ── */
 .main {
   flex: 1; display: flex; flex-direction: column;
-  padding: 24px 20px calc(var(--safe-b) + 24px);
+  padding: 24px 20px calc(var(--safe-b) + 88px);
   max-width: 480px; width: 100%; margin: 0 auto;
 }
 
@@ -145,19 +106,16 @@ body {
 /* ── WAITING STATE ── */
 .waiting-body {
   flex: 1; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 0; text-align: center;
-  padding: 20px 0;
+  align-items: center; justify-content: center; gap: 0; text-align: center; padding: 20px 0;
 }
 .nfc-ring {
-  width: 140px; height: 140px; position: relative;
-  margin-bottom: 32px;
+  width: 140px; height: 140px; position: relative; margin-bottom: 32px;
 }
 .nfc-ring-inner {
   width: 80px; height: 80px; border-radius: 50%;
   background: var(--bg2); border: 1.5px solid var(--border2);
   position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
-  display: flex; align-items: center; justify-content: center;
-  z-index: 2;
+  display: flex; align-items: center; justify-content: center; z-index: 2;
 }
 .nfc-ring-inner svg { width: 32px; height: 32px; stroke: var(--text3); fill: none; stroke-width: 1.5; }
 .ring {
@@ -175,23 +133,18 @@ body {
 }
 .waiting-title { font-family: var(--display); font-size: 22px; font-weight: 700; margin-bottom: 8px; }
 .waiting-sub { font-size: 14px; color: var(--text2); line-height: 1.6; max-width: 280px; }
-
 .divider-or {
   display: flex; align-items: center; gap: 12px;
   margin: 28px 0; color: var(--text3); font-size: 12px; font-family: var(--mono);
 }
-.divider-or::before, .divider-or::after {
-  content: ''; flex: 1; height: 1px; background: var(--border);
-}
-
+.divider-or::before, .divider-or::after { content: ''; flex: 1; height: 1px; background: var(--border); }
 .manual-sku-wrap { width: 100%; }
 .manual-sku-label { font-size: 12px; font-weight: 600; color: var(--text2); margin-bottom: 7px; letter-spacing: .04em; display: block; }
 .sku-input-row { display: flex; gap: 8px; }
 .sku-input {
   flex: 1; background: var(--bg2); border: 1.5px solid var(--border);
   color: var(--text); padding: 11px 14px; border-radius: 10px;
-  font-family: var(--mono); font-size: 14px; outline: none;
-  transition: border .15s;
+  font-family: var(--mono); font-size: 14px; outline: none; transition: border .15s;
 }
 .sku-input::placeholder { color: var(--text3); }
 .sku-input:focus { border-color: var(--accent); }
@@ -204,12 +157,12 @@ body {
 .btn-search:hover { background: var(--accent2); }
 .btn-search svg { width: 15px; height: 15px; stroke: white; fill: none; stroke-width: 2; }
 
-/* ── FORM STATE ── */
+/* ── PRODUCT CARD ── */
 .product-found-card {
   background: var(--bg2); border: 1.5px solid var(--border);
   border-radius: 14px; padding: 18px; margin-bottom: 20px;
-  display: flex; align-items: center; gap: 14px;
 }
+.pfc-top { display: flex; align-items: center; gap: 14px; margin-bottom: 0; }
 .pf-icon {
   width: 44px; height: 44px; border-radius: 10px;
   background: var(--bg3); border: 1px solid var(--border2);
@@ -220,18 +173,46 @@ body {
 .pf-cat { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--text3); margin-bottom: 3px; }
 .pf-name { font-family: var(--display); font-size: 17px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pf-meta { font-size: 12px; color: var(--text2); font-family: var(--mono); margin-top: 2px; }
-.pf-stock { text-align: right; flex-shrink: 0; }
-.pf-qty { font-family: var(--mono); font-size: 26px; font-weight: 700; line-height: 1; }
+.pf-stock-row {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border);
+}
+.pf-stock-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--text3); }
+.pf-stock-val { display: flex; align-items: baseline; gap: 6px; }
+.pf-qty { font-family: var(--mono); font-size: 32px; font-weight: 700; line-height: 1; }
 .pf-qty.ok  { color: var(--green); }
 .pf-qty.low { color: var(--amber); }
 .pf-qty.out { color: var(--red); }
-.pf-lbl { font-size: 10px; color: var(--text3); font-family: var(--mono); margin-top: 2px; }
+.pf-qty-lbl { font-size: 12px; color: var(--text3); font-family: var(--mono); }
+.pf-status-badge {
+  font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; letter-spacing: .04em;
+}
+.pf-status-badge.ok  { background: var(--green2); color: var(--green); }
+.pf-status-badge.low { background: var(--amber2); color: var(--amber); }
+.pf-status-badge.out { background: var(--red2);   color: var(--red); }
 
+/* ── MODE TOGGLE ── */
+.mode-toggle {
+  display: flex; gap: 6px; margin-bottom: 20px;
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 4px;
+}
+.mode-btn {
+  flex: 1; padding: 10px 8px; border: none; border-radius: 8px;
+  font-family: var(--display); font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: all .18s; color: var(--text3); background: transparent;
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+}
+.mode-btn svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2; flex-shrink: 0; }
+.mode-btn.active-salida { background: var(--accent); color: white; box-shadow: 0 2px 8px rgba(212,82,42,.35); }
+.mode-btn.active-entrada { background: var(--green); color: white; box-shadow: 0 2px 8px rgba(46,204,113,.25); }
+.mode-btn:not(.active-salida):not(.active-entrada):hover { color: var(--text2); background: var(--bg3); }
+
+/* ── FORM ── */
 .form-section-title {
   font-size: 11px; font-weight: 700; text-transform: uppercase;
   letter-spacing: .1em; color: var(--text3); margin-bottom: 12px;
 }
-
 .field { margin-bottom: 14px; }
 .field label { font-size: 12px; font-weight: 600; color: var(--text2); display: block; margin-bottom: 6px; letter-spacing: .03em; }
 .field input, .field select {
@@ -242,19 +223,31 @@ body {
 }
 .field input::placeholder { color: var(--text3); }
 .field input:focus, .field select:focus { border-color: var(--accent); }
+.field select option { background: var(--bg3); color: var(--text); }
 
-.btn-deliver {
-  width: 100%; background: var(--accent); color: white;
-  border: none; padding: 16px; border-radius: 12px;
-  font-family: var(--display); font-size: 16px; font-weight: 700;
-  cursor: pointer; transition: all .2s; margin-top: 8px;
+.no-stock-alert {
+  background: var(--red2); border: 1px solid rgba(231,76,60,.3);
+  border-radius: 10px; padding: 14px; margin-bottom: 16px;
+  font-size: 13.5px; color: var(--red); display: flex; gap: 10px; align-items: flex-start;
+}
+.no-stock-alert svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; flex-shrink: 0; margin-top: 1px; }
+
+/* ── ACTION BUTTON ── */
+.btn-action {
+  width: 100%; border: none; padding: 16px;
+  border-radius: 12px; font-family: var(--display);
+  font-size: 16px; font-weight: 700; cursor: pointer;
+  transition: all .2s; margin-top: 8px;
   display: flex; align-items: center; justify-content: center; gap: 10px;
   letter-spacing: -.2px;
 }
-.btn-deliver:hover { background: var(--accent2); transform: translateY(-1px); }
-.btn-deliver:active { transform: translateY(0); }
-.btn-deliver:disabled { opacity: .4; cursor: not-allowed; transform: none; }
-.btn-deliver svg { width: 18px; height: 18px; stroke: white; fill: none; stroke-width: 2.5; }
+.btn-action.salida { background: var(--accent); color: white; }
+.btn-action.salida:hover { background: var(--accent2); transform: translateY(-1px); }
+.btn-action.entrada { background: var(--green); color: white; }
+.btn-action.entrada:hover { opacity: .9; transform: translateY(-1px); }
+.btn-action:active { transform: translateY(0); }
+.btn-action:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+.btn-action svg { width: 18px; height: 18px; stroke: white; fill: none; stroke-width: 2.5; }
 
 .btn-back {
   background: none; border: none; color: var(--text3); font-family: var(--font);
@@ -264,13 +257,6 @@ body {
 .btn-back:hover { color: var(--text2); }
 .btn-back svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; }
 
-.no-stock-alert {
-  background: var(--red2); border: 1px solid rgba(231,76,60,.3);
-  border-radius: 10px; padding: 14px; margin-bottom: 16px;
-  font-size: 13.5px; color: var(--red); display: flex; gap: 10px; align-items: flex-start;
-}
-.no-stock-alert svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; flex-shrink: 0; margin-top: 1px; }
-
 /* ── SUCCESS STATE ── */
 .success-body {
   flex: 1; display: flex; flex-direction: column;
@@ -279,25 +265,25 @@ body {
 }
 .success-icon {
   width: 80px; height: 80px; border-radius: 50%;
-  background: var(--green2); border: 1.5px solid rgba(46,204,113,.3);
   display: flex; align-items: center; justify-content: center;
   margin-bottom: 24px; animation: popIn .4s cubic-bezier(.175,.885,.32,1.275);
 }
-.success-icon svg { width: 36px; height: 36px; stroke: var(--green); fill: none; stroke-width: 2.5; }
+.success-icon.salida { background: var(--red2); border: 1.5px solid rgba(231,76,60,.3); }
+.success-icon.entrada { background: var(--green2); border: 1.5px solid rgba(46,204,113,.3); }
+.success-icon.salida svg { stroke: var(--red); }
+.success-icon.entrada svg { stroke: var(--green); }
+.success-icon svg { width: 36px; height: 36px; fill: none; stroke-width: 2.5; }
 @keyframes popIn { from { transform: scale(.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-
 .success-title { font-family: var(--display); font-size: 26px; font-weight: 800; margin-bottom: 6px; }
 .success-sub { font-size: 14px; color: var(--text2); margin-bottom: 28px; line-height: 1.6; }
 .success-detail {
   background: var(--bg2); border: 1px solid var(--border);
-  border-radius: 12px; padding: 16px 18px; width: 100%; text-align: left;
-  margin-bottom: 28px;
+  border-radius: 12px; padding: 16px 18px; width: 100%; text-align: left; margin-bottom: 28px;
 }
 .sd-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--border); }
 .sd-row:last-child { border-bottom: none; }
 .sd-label { font-size: 11.5px; color: var(--text3); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
 .sd-val { font-size: 13.5px; font-weight: 500; font-family: var(--mono); }
-
 .btn-new-delivery {
   width: 100%; background: var(--bg2); color: var(--text);
   border: 1.5px solid var(--border2); padding: 14px; border-radius: 12px;
@@ -326,121 +312,121 @@ body {
 }
 .btn-retry:hover { border-color: var(--accent); color: var(--accent); }
 
-/* ── NAV BOTTOM ── */
+/* ── BOTTOM NAV ── */
 .bottom-nav {
-  background: var(--bg); border-top: 1px solid var(--border);
-  padding: 10px 8px calc(var(--safe-b) + 8px);
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px;
-  position: sticky; bottom: 0; z-index: 100;
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: var(--bg2); border-top: 1px solid var(--border);
+  display: flex; align-items: stretch; z-index: 200;
+  padding-bottom: var(--safe-b);
 }
 .bn-item {
-  display: flex; flex-direction: column; align-items: center; gap: 4px;
-  padding: 8px 4px; border-radius: 10px; cursor: pointer;
-  text-decoration: none; color: var(--text3); transition: all .15s;
-  border: none; background: none; font-family: var(--font);
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 4px; padding: 12px 8px; background: none; border: none; color: var(--text3);
+  font-family: var(--font); font-size: 11px; font-weight: 500; cursor: pointer;
+  text-decoration: none; transition: color .15s;
 }
-.bn-item:hover, .bn-item.active { color: var(--text); background: var(--bg2); }
-.bn-item svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.8; }
-.bn-label { font-size: 10px; font-weight: 500; }
-
-/* ── LOADING ── */
-.loading-overlay {
-  position: fixed; inset: 0; background: var(--bg);
-  display: flex; align-items: center; justify-content: center;
-  flex-direction: column; gap: 14px; z-index: 999;
-  transition: opacity .3s;
-}
-.loading-overlay.hidden { opacity: 0; pointer-events: none; }
-.spinner {
-  width: 36px; height: 36px; border: 2.5px solid var(--border2);
-  border-top-color: var(--accent); border-radius: 50%;
-  animation: spin .7s linear infinite;
-}
-.loading-txt { font-size: 13px; color: var(--text3); font-family: var(--mono); }
-@keyframes spin { to { transform: rotate(360deg); } }
-
-/* ── ANIMATIONS ── */
-@keyframes fadeSlideUp {
-  from { opacity: 0; transform: translateY(16px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-.state.active { animation: fadeSlideUp .25s ease; }
-
-/* ── STOCK PILL ── */
-.stock-inline { display: inline-flex; align-items: center; gap: 5px; font-family: var(--mono); font-size: 12px; font-weight: 600; }
-.stock-dot { width: 6px; height: 6px; border-radius: 50%; }
-.dot-ok  { background: var(--green); }
-.dot-low { background: var(--amber); }
-.dot-out { background: var(--red); }
-
-/* ── TOAST ── */
-.toast-wrap { position: fixed; top: 80px; left: 50%; transform: translateX(-50%); z-index: 999; pointer-events: none; }
-.toast-msg {
-  background: var(--bg3); border: 1px solid var(--border2); color: var(--text);
-  padding: 10px 18px; border-radius: 20px; font-size: 13px; font-weight: 500;
-  box-shadow: 0 8px 24px rgba(0,0,0,.4); white-space: nowrap;
-  animation: toastIn .25s ease;
-}
-@keyframes toastIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+.bn-item svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.8; }
+.bn-item.active { color: var(--accent); }
+.bn-item:hover { color: var(--text2); }
+.bn-label { font-size: 10.5px; }
 
 /* ── SETUP PROMPT ── */
 .setup-prompt {
-  background: var(--bg2); border: 1px solid var(--border);
-  border-radius: 12px; padding: 18px; margin-bottom: 20px; display: none;
+  position: fixed; inset: 0; background: var(--bg); z-index: 9999;
+  display: none; align-items: center; justify-content: center; padding: 24px;
 }
-.setup-prompt.show { display: block; }
-.sp-title { font-size: 13px; font-weight: 600; margin-bottom: 10px; }
-.sp-fields { display: flex; flex-direction: column; gap: 10px; }
-.sp-input {
+.setup-prompt.show { display: flex; }
+.setup-card {
+  background: var(--bg2); border: 1px solid var(--border2); border-radius: 16px;
+  padding: 28px; max-width: 400px; width: 100%;
+}
+.sp-title { font-family: var(--display); font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+.sp-sub { font-size: 13.5px; color: var(--text2); margin-bottom: 18px; line-height: 1.6; }
+.sp-field { margin-bottom: 12px; }
+.sp-field label { font-size: 12px; font-weight: 600; color: var(--text2); display: block; margin-bottom: 6px; }
+.sp-field input {
   width: 100%; background: var(--bg3); border: 1.5px solid var(--border);
-  color: var(--text); padding: 10px 13px; border-radius: 8px;
-  font-family: var(--font); font-size: 13px; outline: none;
+  color: var(--text); padding: 11px 14px; border-radius: 10px;
+  font-family: var(--mono); font-size: 13px; outline: none; transition: border .15s;
 }
-.sp-input:focus { border-color: var(--accent); }
-.sp-btn {
-  background: var(--accent); color: white; border: none;
-  padding: 10px; border-radius: 8px; font-family: var(--font);
-  font-size: 13px; font-weight: 600; cursor: pointer; width: 100%;
+.sp-field input:focus { border-color: var(--accent); }
+.btn-sp-save {
+  width: 100%; background: var(--accent); color: white; border: none;
+  padding: 14px; border-radius: 10px; font-family: var(--display);
+  font-size: 15px; font-weight: 700; cursor: pointer; margin-bottom: 10px;
 }
+.btn-sp-local {
+  width: 100%; background: none; color: var(--text3); border: 1px solid var(--border);
+  padding: 11px; border-radius: 10px; font-family: var(--font);
+  font-size: 13px; cursor: pointer;
+}
+
+/* ── TOAST ── */
+.toast-wrap {
+  position: fixed; top: calc(var(--safe-t) + 70px); left: 50%; transform: translateX(-50%);
+  z-index: 9999; pointer-events: none; width: calc(100% - 40px); max-width: 360px;
+}
+.toast-msg {
+  background: var(--bg3); border: 1px solid var(--border2); color: var(--text);
+  padding: 12px 16px; border-radius: 10px; font-size: 13.5px; font-weight: 500;
+  text-align: center; box-shadow: 0 8px 24px rgba(0,0,0,.5);
+  animation: slideDown .25s; pointer-events: all;
+}
+@keyframes slideDown { from { transform: translateY(-12px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+/* ── LOADER ── */
+#loader {
+  position: fixed; inset: 0; background: var(--bg); z-index: 8888;
+  display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 14px;
+  transition: opacity .4s;
+}
+.loader-spinner {
+  width: 32px; height: 32px; border: 3px solid var(--border2);
+  border-top-color: var(--accent); border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loader-text { font-size: 13px; color: var(--text3); font-family: var(--mono); }
 </style>
 </head>
 <body>
 
-<div class="loading-overlay" id="loader">
-  <div class="spinner"></div>
-  <div class="loading-txt">Cargando...</div>
+<!-- Loader -->
+<div id="loader">
+  <div class="loader-spinner"></div>
+  <div class="loader-text">Cargando UniStock…</div>
 </div>
 
-<div class="toast-wrap" id="toast-wrap"></div>
+<!-- Setup prompt -->
+<div class="setup-prompt" id="setup-prompt">
+  <div class="setup-card">
+    <div class="sp-title">Conectar Supabase</div>
+    <div class="sp-sub">Para usar en modo NFC, conecta tu base de datos. O continúa en modo local.</div>
+    <div class="sp-field"><label>Project URL</label><input type="text" id="sp-url" placeholder="https://xxx.supabase.co"></div>
+    <div class="sp-field"><label>Anon Key</label><input type="text" id="sp-key" placeholder="eyJ..."></div>
+    <button class="btn-sp-save" onclick="saveConfigAndLoad()">Conectar</button>
+    <button class="btn-sp-local" onclick="useLocalAndLoad()">Continuar en modo local</button>
+  </div>
+</div>
 
-<header class="topbar">
+<!-- Topbar -->
+<div class="topbar">
   <div class="logo">
-    <div class="logo-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><polyline points="19.89 10.57 22.48 12.04 11.89 18.02 1.3 12.04 3.99 10.5"/>
-  <g>
-    <polygon points="1.43 7.04 12.02 13.02 22.61 7.04 12.02 1 1.43 7.04"/>
-    <polyline points="19.97 15.5 22.61 17 12.02 23 1.43 17 4.06 15.5"/>
-  </g></svg></div>
-    <span class="logo-name">UniStock</span>
-    <span class="logo-tag">NFC</span>
+    <div class="logo-mark">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="19.89 10.57 22.48 12.04 11.89 18.02 1.3 12.04 3.99 10.5"/><g><polygon points="1.43 7.04 12.02 13.02 22.61 7.04 12.02 1 1.43 7.04"/><polyline points="19.97 15.5 22.61 17 12.02 23 1.43 17 4.06 15.5"/></g></svg>
+    </div>
+    <div class="logo-name">UniStock</div>
+    <div class="logo-tag">NFC</div>
   </div>
   <a href="index.html" class="nav-btn">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
     Admin
   </a>
-</header>
+</div>
 
 <main class="main">
 
-  <div class="setup-prompt" id="setup-prompt">
-    <div class="sp-title">Conectar con Supabase</div>
-    <div class="sp-fields">
-      <input class="sp-input" type="text" id="sp-url" placeholder="https://xxxx.supabase.co">
-      <input class="sp-input" type="text" id="sp-key" placeholder="eyJhbGci... (anon public key)">
-      <button class="sp-btn" onclick="saveConfigAndLoad()">Conectar</button>
-    </div>
-  </div>
-
-  <!-- WAITING -->
+  <!-- WAITING STATE -->
   <div class="state active" id="state-waiting">
     <div class="waiting-body">
       <div class="nfc-ring">
@@ -448,152 +434,190 @@ body {
         <div class="ring"></div>
         <div class="ring"></div>
         <div class="nfc-ring-inner">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+          </svg>
         </div>
       </div>
       <div class="waiting-title">Acerca la etiqueta NFC</div>
-      <div class="waiting-sub">Toca el articulo con tu telefono para registrar la entrega automaticamente</div>
+      <div class="waiting-sub">Toca el artículo con tu teléfono para consultar su stock o registrar una movimiento.</div>
     </div>
     <div class="divider-or">o ingresa el SKU</div>
     <div class="manual-sku-wrap">
-      <span class="manual-sku-label">SKU del articulo</span>
+      <span class="manual-sku-label">SKU del artículo</span>
       <div class="sku-input-row">
-        <input class="sku-input" type="text" id="manual-sku" placeholder="POL-NEG-M" autocomplete="off" autocapitalize="characters" onkeydown="if(event.key==='Enter') buscarSKU()">
+        <input class="sku-input" type="text" id="manual-sku" placeholder="POL-NEG-M"
+          autocomplete="off" autocapitalize="characters"
+          onkeydown="if(event.key==='Enter') buscarSKU()">
         <button class="btn-search" onclick="buscarSKU()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           Buscar
         </button>
       </div>
     </div>
   </div>
 
-  <!-- FORM -->
+  <!-- PRODUCT DETAIL + ACTION -->
   <div class="state" id="state-form">
     <button class="btn-back" onclick="goBack()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
       Volver
     </button>
+
+    <!-- Product card with prominent stock -->
     <div class="product-found-card">
-      <div class="pf-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="2.24 6.57 11.99 12.08 21.75 6.57 11.99 1 2.24 6.57"/>
-  <polyline points="11.99 12.08 11.99 23 21.84 17.65 21.75 6.57"/>
-  <polyline points="2.24 6.57 2.24 17.65 11.99 23"/></svg>
+      <div class="pfc-top">
+        <div class="pf-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="2.24 6.57 11.99 12.08 21.75 6.57 11.99 1 2.24 6.57"/><polyline points="11.99 12.08 11.99 23 21.84 17.65 21.75 6.57"/><polyline points="2.24 6.57 2.24 17.65 11.99 23"/></svg>
+        </div>
+        <div class="pf-info">
+          <div class="pf-cat" id="pf-cat"></div>
+          <div class="pf-name" id="pf-name"></div>
+          <div class="pf-meta" id="pf-meta"></div>
+        </div>
       </div>
-      <div class="pf-info">
-        <div class="pf-cat" id="pf-cat"></div>
-        <div class="pf-name" id="pf-name"></div>
-        <div class="pf-meta" id="pf-meta"></div>
-      </div>
-      <div class="pf-stock">
-        <div class="pf-qty" id="pf-qty">0</div>
-        <div class="pf-lbl">en stock</div>
+      <div class="pf-stock-row">
+        <div class="pf-stock-label">Stock disponible</div>
+        <div class="pf-stock-val">
+          <div class="pf-qty" id="pf-qty">0</div>
+          <span class="pf-qty-lbl">uds</span>
+          <span class="pf-status-badge" id="pf-badge">OK</span>
+        </div>
       </div>
     </div>
+
+    <!-- Mode toggle: Salida / Entrada -->
+    <div class="mode-toggle">
+      <button class="mode-btn active-salida" id="mode-btn-salida" onclick="setMode('salida')">
+        <svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+        Registrar salida
+      </button>
+      <button class="mode-btn" id="mode-btn-entrada" onclick="setMode('entrada')">
+        <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+        Registrar entrada
+      </button>
+    </div>
+
+    <!-- No stock warning (only for salida) -->
     <div id="no-stock-msg" style="display:none">
       <div class="no-stock-alert">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-        <div><strong>Sin stock disponible</strong><br>Este articulo no tiene unidades para entregar.</div>
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+        <div><strong>Sin stock disponible</strong><br>Este artículo no tiene unidades para entregar. Puedes registrar una <strong>entrada</strong> para reponer.</div>
       </div>
     </div>
+
+    <!-- Form fields -->
     <div id="form-fields">
-      <div class="form-section-title">Datos de entrega</div>
-      <div class="field">
-        <label>Nombre del colaborador *</label>
-        <input type="text" id="f-person" placeholder="Ej: Ana Garcia" autocomplete="name">
+      <div class="form-section-title" id="form-section-lbl">Datos de entrega</div>
+
+      <!-- Salida fields -->
+      <div id="fields-salida">
+        <div class="field">
+          <label>Colaborador *</label>
+          <input type="text" id="f-person" placeholder="Nombre del colaborador" autocomplete="name">
+        </div>
+        <div class="field">
+          <label>UDN / Sucursal *</label>
+          <select id="f-branch">
+            <option value="">Selecciona UDN...</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Cantidad</label>
+          <input type="number" id="f-qty-sal" value="1" min="1" style="width:100px">
+        </div>
+        <div class="field">
+          <label>Comentario (opcional)</label>
+          <input type="text" id="f-comment-sal" placeholder="Nuevo ingreso, reposición...">
+        </div>
       </div>
-      <div class="field">
-        <label>Sucursal *</label>
-        <input type="text" id="f-branch" placeholder="Ej: Planta Norte" list="branch-list">
-        <datalist id="branch-list">
-          <option value="Planta Norte">
-          <option value="Planta Sur">
-          <option value="Oficinas Centrales">
-          <option value="Almacen GDL">
-          <option value="Almacen MTY">
-        </datalist>
+
+      <!-- Entrada fields -->
+      <div id="fields-entrada" style="display:none">
+        <div class="field">
+          <label>Cantidad *</label>
+          <input type="number" id="f-qty-ent" value="1" min="1">
+        </div>
+        <div class="field">
+          <label>Comentario (opcional)</label>
+          <input type="text" id="f-comment-ent" placeholder="Proveedor, factura, reposición...">
+        </div>
       </div>
-      <button class="btn-deliver" id="btn-deliver" onclick="confirmarEntrega()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+
+      <button class="btn-action salida" id="btn-action" onclick="confirmarMovimiento()">
+        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
         Confirmar entrega
       </button>
     </div>
   </div>
 
-  <!-- SUCCESS -->
+  <!-- SUCCESS STATE -->
   <div class="state" id="state-success">
     <div class="success-body">
-      <div class="success-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+      <div class="success-icon salida" id="success-icon">
+        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
       </div>
-      <div class="success-title">Entregado!</div>
+      <div class="success-title" id="success-title">¡Entregado!</div>
       <div class="success-sub" id="success-sub">Salida registrada correctamente</div>
       <div class="success-detail" id="success-detail"></div>
-      <button class="btn-new-delivery" onclick="goBack()">Nueva entrega</button>
+      <button class="btn-new-delivery" onclick="goBack()">Nuevo movimiento</button>
     </div>
   </div>
 
-  <!-- ERROR -->
+  <!-- ERROR STATE -->
   <div class="state" id="state-error">
     <div class="error-body">
       <div class="error-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
       </div>
       <div class="error-title">SKU no encontrado</div>
-      <div class="error-sub" id="error-msg">No se encontro ningun articulo con ese SKU.</div>
+      <div class="error-sub" id="error-msg">No se encontró ningún artículo con ese SKU.</div>
       <button class="btn-retry" onclick="goBack()">Intentar de nuevo</button>
     </div>
   </div>
 
 </main>
 
+<!-- Bottom nav -->
 <nav class="bottom-nav">
-  <button class="bn-item active" onclick="goBack()">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="12.03" y1="1" x2="12.03" y2="23"/>
-  <polyline points="19.57 15.15 12.03 23 4.43 15.27"/></svg>
-    <span class="bn-label">Entrega</span>
+  <button class="bn-item active" onclick="goBack(); setTabActive('bn-nfc')">
+    <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M6 9h4M6 12h2M14 9h4M14 12h2M14 15h4"/></svg>
+    <span class="bn-label">NFC</span>
   </button>
-  <a class="bn-item" href="index.html">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="2.24 6.57 11.99 12.08 21.75 6.57 11.99 1 2.24 6.57"/>
-  <polyline points="11.99 12.08 11.99 23 21.84 17.65 21.75 6.57"/>
-  <polyline points="2.24 6.57 2.24 17.65 11.99 23"/></svg>
-    <span class="bn-label">Inventario</span>
+  <a class="bn-item" href="index.html#stock">
+    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+    <span class="bn-label">Stock</span>
   </a>
   <a class="bn-item" href="index.html">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="12.03" y1="1" x2="12.03" y2="23"/>
-  <polyline points="19.57 15.15 12.03 23 4.43 15.27"/></svg>
-    <span class="bn-label">Entradas</span>
-  </a>
-  <a class="bn-item" href="index.html">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-    <span class="bn-label">Historial</span>
+    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    <span class="bn-label">Admin</span>
   </a>
 </nav>
 
+<!-- Toast -->
+<div class="toast-wrap" id="toast-wrap"></div>
+
 <script>
 var SB = null;
-var PRODS = [], TYPES = [], CATS = [];
+var PRODS = [], TYPES = [], CATS = [], COLLS = [];
 var currentProduct = null;
+var currentMode = 'salida'; // 'salida' | 'entrada'
+
+var UDN_LIST = [
+  'CEDIS','City Center','Foro 4','Call Center',
+  'Sucursal Aguascalientes','Sucursal Chapultepec','Sucursal La Viga',
+  'Sucursal León','Sucursal Naucalpan','Sucursal Nogalar',
+  'Sucursal Puebla','Sucursal Querétaro','Sucursal San Luis Potosí',
+  'Sucursal Tijuana','Sucursal Toluca','Sucursal Zapopan'
+];
 
 var CAT_ICONS = {};
-CAT_ICONS['[IC16]'] = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M11.98,2.97c1.11-.06,2.01-.34,2.77-.78l2.71.69c.92.24,1.76.73,2.43,1.42l3.08,3.2-2.93,2.96-1.78-1.78v12.22c0,.5-.41.91-.91.91h-5.37s.05,0,.05,0h-5.37c-.5,0-.91-.41-.91-.91v-12.22l-1.78,1.78-2.93-2.96,3.08-3.2c.66-.69,1.5-1.18,2.43-1.42l2.71-.69c.76.44,1.67.72,2.77.78"/> <path d="M14.75,2.19c-.49,1.64-1.42,2.45-2.79,2.41h.08c-1.37.04-2.3-.77-2.79-2.41"/> <path d="M16.02,2.51c-.57,2.15-1.88,3.34-4.06,3.42h.08c-2.18-.08-3.49-1.27-4.06-3.42"/></svg>';
-CAT_ICONS['[IC17]'] = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M4.45,14.09h-.81c-.67,0-1.22.55-1.22,1.22v5.09c0,.67.55,1.22,1.22,1.22h.81"/> <path d="M6.58,11.25c0-8.12,10.87-8.12,10.87,0"/> <path d="M11.97,3.32c1.06,0,2.12.19,3.1.6,1.22.51,2.32,1.35,3.06,2.44,1.39,2.04,1.43,4.67,1.42,7.13,0,2.39-.02,4.78-.03,7.17,0,.43,0,.86-.13,1.27s-.4.79-.79.96c-.26.1-.55.11-.82.11-3.75,0-7.5,0-11.25,0-.39,0-.8,0-1.16-.15-.31-.13-.57-.38-.73-.68-.17-.33-.19-.69-.18-1.06.02-.94.02-1.87,0-2.81s-.02-1.88-.02-2.81,0-1.87.02-2.81c0-.28.01-.55.02-.83.06-1.76.2-3.58,1.09-5.1.68-1.17,1.78-2.08,3.01-2.66,1.06-.5,2.23-.76,3.4-.77Z"/> <path d="M19.52,14.09h.81c.67,0,1.22.55,1.22,1.22v5.09c0,.67-.55,1.22-1.22,1.22h-.81"/> <path d="M11.99,21.61h4.51c.61,0,1.1-.49,1.1-1.1v-4.93c0-.61-.49-1.1-1.1-1.1h-4.51s0,0,0,0h-4.51c-.61,0-1.1.49-1.1,1.1v4.93c0,.61.49,1.1,1.1,1.1h4.51"/> <polyline points="17.6 17.02 11.99 17.02 11.99 17.02 6.38 17.02"/> <path d="M9.37,3.76c0-3.7,5.32-3.69,5.32,0"/></svg>';
-CAT_ICONS['[IC18]'] = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M4.65,12.68h1.6c.54,0,.98.44.98.98v7.13c0,.54-.44.98-.98.98h-1.6v-9.09h0Z" transform="translate(-2.9 1.29) rotate(-10)"/> <path d="M3.26,13.84h1.43v7.79h-1.43c-1.06,0-1.92-.86-1.92-1.92v-3.96c0-1.06.86-1.92,1.92-1.92Z" transform="translate(-3.03 .79) rotate(-10)"/> <path d="M16.77,12.68h1.6c.54,0,.98.44.98.98v7.13c0,.54-.44.98-.98.98h-1.6v-9.09h0Z" transform="translate(32.86 37.32) rotate(-170)"/> <path d="M21.23,13.84h1.43v7.79h-1.43c-1.06,0-1.92-.86-1.92-1.92v-3.96c0-1.06.86-1.92,1.92-1.92Z" transform="translate(38.56 38.85) rotate(-170)"/> <path d="M4.2,12.91c0-11.83,15.63-11.83,15.63,0"/> <path d="M2.13,14C.78-2.38,23.37-1.71,21.85,14"/></svg>';
-CAT_ICONS['[IC19]'] = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M8.01,1.03c.22,3.04,1.19,6.15,2.89,9.32.14.26.21.54.21.83v11.81"/> <line x1="11.11" y1="14.98" x2="1.79" y2="14.98"/> <line x1="1.79" y1="18.25" x2="11.11" y2="18.25"/> <path d="M12,3.54c1.52-.01,3.15-.85,3.99-2.5l3.72.95c-.57,5.19,0,8.84,2.5,9.88v9.29c0,1.02-.83,1.84-1.84,1.84,0,0-8.36,0-8.36,0H3.64c-1.02,0-1.84-.83-1.84-1.84v-9.29c2.5-1.04,3.07-4.69,2.5-9.88l3.72-.95c.84,1.65,2.47,2.49,3.99,2.5Z"/> <path d="M15.99,1.03c-.22,3.04-1.19,6.15-2.89,9.32-.14.26-.21.54-.21.83v11.81"/> <line x1="12.89" y1="14.98" x2="22.21" y2="14.98"/> <line x1="22.21" y1="18.25" x2="12.89" y2="18.25"/></svg>';
-var EMOJI_IC = {};
-EMOJI_IC['👕'] = '[IC16]';
-EMOJI_IC['🎒'] = '[IC17]';
-EMOJI_IC['🎧'] = '[IC18]';
-EMOJI_IC['🦺'] = '[IC19]';
+CAT_ICONS['[IC16]'] = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11.98,2.97c1.11-.06,2.01-.34,2.77-.78l2.71.69c.92.24,1.76.73,2.43,1.42l3.08,3.2-2.93,2.96-1.78-1.78v12.22c0,.5-.41.91-.91.91h-5.37s.05,0,.05,0h-5.37c-.5,0-.91-.41-.91-.91v-12.22l-1.78,1.78-2.93-2.96,3.08-3.2c.66-.69,1.5-1.18,2.43-1.42l2.71-.69c.76.44,1.67.72,2.77.78"/> <path d="M14.75,2.19c-.49,1.64-1.42,2.45-2.79,2.41h.08c-1.37.04-2.3-.77-2.79-2.41"/> <path d="M16.02,2.51c-.57,2.15-1.88,3.34-4.06,3.42h.08c-2.18-.08-3.49-1.27-4.06-3.42"/></svg>';
+CAT_ICONS['[IC17]'] = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4.45,14.09h-.81c-.67,0-1.22.55-1.22,1.22v5.09c0,.67.55,1.22,1.22,1.22h.81"/> <path d="M6.58,11.25c0-8.12,10.87-8.12,10.87,0"/> <path d="M11.97,3.32c1.06,0,2.12.19,3.1.6,1.22.51,2.32,1.35,3.06,2.44,1.39,2.04,1.43,4.67,1.42,7.13,0,2.39-.02,4.78-.03,7.17,0,.43,0,.86-.13,1.27s-.4.79-.79.96c-.26.1-.55.11-.82.11-3.75,0-7.5,0-11.25,0-.39,0-.8,0-1.16-.15-.31-.13-.57-.38-.73-.68-.17-.33-.19-.69-.18-1.06.02-.94.02-1.87,0-2.81s-.02-1.88-.02-2.81,0-1.87.02-2.81c0-.28.01-.55.02-.83.06-1.76.2-3.58,1.09-5.1.68-1.17,1.78-2.08,3.01-2.66,1.06-.5,2.23-.76,3.4-.77Z"/> <path d="M19.52,14.09h.81c.67,0,1.22.55,1.22,1.22v5.09c0,.67-.55,1.22-1.22,1.22h-.81"/> <path d="M11.99,21.61h4.51c.61,0,1.1-.49,1.1-1.1v-4.93c0-.61-.49-1.1-1.1-1.1h-4.51s0,0,0,0h-4.51c-.61,0-1.1.49-1.1,1.1v4.93c0,.61.49,1.1,1.1,1.1h4.51"/> <polyline points="17.6 17.02 11.99 17.02 11.99 17.02 6.38 17.02"/> <path d="M9.37,3.76c0-3.7,5.32-3.69,5.32,0"/></svg>';
+CAT_ICONS['[IC18]'] = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4.65,12.68h1.6c.54,0,.98.44.98.98v7.13c0,.54-.44.98-.98.98h-1.6v-9.09h0Z" transform="translate(-2.9 1.29) rotate(-10)"/> <path d="M3.26,13.84h1.43v7.79h-1.43c-1.06,0-1.92-.86-1.92-1.92v-3.96c0-1.06.86-1.92,1.92-1.92Z" transform="translate(-3.03 .79) rotate(-10)"/> <path d="M16.77,12.68h1.6c.54,0,.98.44.98.98v7.13c0,.54-.44.98-.98.98h-1.6v-9.09h0Z" transform="translate(32.86 37.32) rotate(-170)"/> <path d="M21.23,13.84h1.43v7.79h-1.43c-1.06,0-1.92-.86-1.92-1.92v-3.96c0-1.06.86-1.92,1.92-1.92Z" transform="translate(38.56 38.85) rotate(-170)"/> <path d="M4.2,12.91c0-11.83,15.63-11.83,15.63,0"/> <path d="M2.13,14C.78-2.38,23.37-1.71,21.85,14"/></svg>';
+CAT_ICONS['[IC19]'] = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8.01,1.03c.22,3.04,1.19,6.15,2.89,9.32.14.26.21.54.21.83v11.81"/> <line x1="11.11" y1="14.98" x2="1.79" y2="14.98"/> <line x1="1.79" y1="18.25" x2="11.11" y2="18.25"/> <path d="M12,3.54c1.52-.01,3.15-.85,3.99-2.5l3.72.95c-.57,5.19,0,8.84,2.5,9.88v9.29c0,1.02-.83,1.84-1.84,1.84,0,0-8.36,0-8.36,0H3.64c-1.02,0-1.84-.83-1.84-1.84v-9.29c2.5-1.04,3.07-4.69,2.5-9.88l3.72-.95c.84,1.65,2.47,2.49,3.99,2.5Z"/> <path d="M15.99,1.03c-.22,3.04-1.19,6.15-2.89,9.32-.14.26-.21.54-.21.83v11.81"/> <line x1="12.89" y1="14.98" x2="22.21" y2="14.98"/> <line x1="22.21" y1="18.25" x2="12.89" y2="18.25"/></svg>';
 
-EMOJI_IC['👕'] = '[IC16]';
-EMOJI_IC['🎒'] = '[IC17]';
-EMOJI_IC['🎧'] = '[IC18]';
-EMOJI_IC['🦺'] = '[IC19]';
-
-EMOJI_IC['👕'] = '[IC16]';
-EMOJI_IC['🎒'] = '[IC17]';
-EMOJI_IC['🎧'] = '[IC18]';
-EMOJI_IC['🦺'] = '[IC19]';
+var EMOJI_IC = {'👕':'[IC16]','🎒':'[IC17]','🎧':'[IC18]','🦺':'[IC19]'};
 
 function getCatIcon(val, size) {
   size = size || '15px';
@@ -602,6 +626,7 @@ function getCatIcon(val, size) {
   return '<span>' + (val || '') + '</span>';
 }
 
+// ── INIT ──
 (async function() {
   try {
     var raw = localStorage.getItem('unistock-cfg');
@@ -614,11 +639,11 @@ function getCatIcon(val, size) {
       } else {
         loadLocal();
       }
+      populateUDNSelect();
       var sku = new URLSearchParams(window.location.search).get('sku');
       if (sku) setTimeout(function() { loadProductBySKU(sku.toUpperCase()); }, 200);
     }
   } catch(e) {
-    console.error('Init error:', e);
     showToast('Error al iniciar: ' + e.message);
   }
   hideLoader();
@@ -631,13 +656,19 @@ function hideLoader() {
   setTimeout(function() { if (l.parentNode) l.parentNode.removeChild(l); }, 400);
 }
 
+function populateUDNSelect() {
+  var sel = document.getElementById('f-branch');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">Selecciona UDN...</option>' +
+    UDN_LIST.map(function(u) { return '<option value="'+u+'">'+u+'</option>'; }).join('');
+}
+
 async function loadSupabase(url, key) {
   if (!window.supabase) {
     await new Promise(function(res, rej) {
       var s = document.createElement('script');
       s.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js';
-      s.onload = res;
-      s.onerror = function() { rej(new Error('No se cargo Supabase JS')); };
+      s.onload = res; s.onerror = function() { rej(new Error('No se cargó Supabase JS')); };
       document.head.appendChild(s);
     });
   }
@@ -645,7 +676,8 @@ async function loadSupabase(url, key) {
   var results = await Promise.all([
     SB.from('categories').select('*'),
     SB.from('product_types').select('*'),
-    SB.from('products').select('*')
+    SB.from('products').select('*'),
+    SB.from('collaborators').select('*').order('name')
   ]);
   if (results[0].error) throw new Error(results[0].error.message);
   if (results[1].error) throw new Error(results[1].error.message);
@@ -653,6 +685,7 @@ async function loadSupabase(url, key) {
   CATS  = results[0].data || [];
   TYPES = results[1].data || [];
   PRODS = results[2].data || [];
+  COLLS = (results[3] && !results[3].error) ? results[3].data || [] : [];
 }
 
 function loadLocal() {
@@ -662,6 +695,7 @@ function loadLocal() {
   CATS  = d.cats  || [];
   TYPES = d.types || [];
   PRODS = d.prods || [];
+  COLLS = d.colls || [];
 }
 
 function saveConfigAndLoad() {
@@ -672,6 +706,12 @@ function saveConfigAndLoad() {
   location.reload();
 }
 
+function useLocalAndLoad() {
+  localStorage.setItem('unistock-cfg', JSON.stringify({ url: '', key: '', mode: 'local' }));
+  location.reload();
+}
+
+// ── SEARCH ──
 function buscarSKU() {
   var sku = document.getElementById('manual-sku').value.trim().toUpperCase();
   if (!sku) { showToast('Ingresa un SKU'); return; }
@@ -684,12 +724,14 @@ function loadProductBySKU(sku) {
     if (PRODS[i].sku && PRODS[i].sku.toUpperCase() === sku) { prod = PRODS[i]; break; }
   }
   if (!prod) {
-    document.getElementById('error-msg').textContent = 'No se encontro ningun articulo con SKU "' + sku + '".';
+    document.getElementById('error-msg').textContent = 'No se encontró ningún artículo con SKU "' + sku + '".';
     showState('error');
     return;
   }
   currentProduct = prod;
+  currentMode = 'salida';
   renderProductCard(prod);
+  updateModeUI();
   showState('form');
 }
 
@@ -698,54 +740,148 @@ function renderProductCard(p) {
   for (var i = 0; i < TYPES.length; i++) { if (TYPES[i].id === p.type_id) { type = TYPES[i]; break; } }
   for (var i = 0; i < CATS.length; i++)  { if (CATS[i].id === p.category_id) { cat = CATS[i]; break; } }
   var sc = p.qty === 0 ? 'out' : p.qty < (p.low_stock_threshold || 5) ? 'low' : 'ok';
-  document.getElementById('pf-cat').innerHTML  = getCatIcon(cat ? cat.icon : '', '15px') + ' ' + (cat ? cat.name : '');
-  document.getElementById('pf-name').textContent = (type ? type.name : '?') + ' - ' + p.color;
-  document.getElementById('pf-meta').textContent = 'Talla ' + p.size + ' · SKU: ' + (p.sku || '-') + ' · ' + p.gender;
+  var labels = {ok:'OK', low:'Bajo', out:'Sin stock'};
+  document.getElementById('pf-cat').innerHTML  = getCatIcon(cat ? cat.icon : '', '14px') + ' ' + (cat ? cat.name : '');
+  document.getElementById('pf-name').textContent = (type ? type.name : '?') + ' — ' + p.color;
+  document.getElementById('pf-meta').textContent = 'Talla ' + p.size + ' · SKU: ' + (p.sku || '—') + ' · ' + p.gender;
   document.getElementById('pf-qty').textContent  = p.qty;
   document.getElementById('pf-qty').className    = 'pf-qty ' + sc;
-  document.getElementById('no-stock-msg').style.display = p.qty === 0 ? 'block' : 'none';
-  document.getElementById('form-fields').style.display  = p.qty === 0 ? 'none'  : 'block';
-  document.getElementById('btn-deliver').disabled = p.qty === 0;
+  document.getElementById('pf-badge').textContent = labels[sc];
+  document.getElementById('pf-badge').className   = 'pf-status-badge ' + sc;
 }
 
-async function confirmarEntrega() {
-  var person = document.getElementById('f-person').value.trim();
-  var branch = document.getElementById('f-branch').value.trim();
-  if (!person) { showToast('Ingresa el nombre del colaborador'); return; }
-  if (!branch) { showToast('Ingresa la sucursal'); return; }
-  var btn = document.getElementById('btn-deliver');
+// ── MODE TOGGLE ──
+function setMode(mode) {
+  currentMode = mode;
+  updateModeUI();
+}
+
+function updateModeUI() {
+  var isSal = currentMode === 'salida';
+  var p = currentProduct;
+  var noStock = p && p.qty === 0;
+
+  // Mode buttons
+  document.getElementById('mode-btn-salida').className  = 'mode-btn' + (isSal ? ' active-salida' : '');
+  document.getElementById('mode-btn-entrada').className = 'mode-btn' + (!isSal ? ' active-entrada' : '');
+
+  // No-stock message only relevant for salida
+  document.getElementById('no-stock-msg').style.display  = (isSal && noStock) ? 'block' : 'none';
+
+  // Show/hide field groups
+  document.getElementById('fields-salida').style.display  = isSal ? 'block' : 'none';
+  document.getElementById('fields-entrada').style.display = !isSal ? 'block' : 'none';
+
+  // Label + button
+  document.getElementById('form-section-lbl').textContent = isSal ? 'Datos de entrega' : 'Datos de recepción';
+  var btn = document.getElementById('btn-action');
+  btn.className = 'btn-action ' + currentMode;
+  if (isSal) {
+    btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Confirmar entrega';
+    btn.disabled = noStock;
+  } else {
+    btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M12 5v14M5 12l7 7 7-7"/></svg> Confirmar entrada';
+    btn.disabled = false;
+  }
+
+  // Form fields always visible in entrada mode
+  document.getElementById('form-fields').style.display = 'block';
+}
+
+// ── CONFIRM MOVEMENT ──
+async function confirmarMovimiento() {
+  if (!currentProduct) return;
+  var btn = document.getElementById('btn-action');
   btn.disabled = true;
-  btn.textContent = 'Registrando...';
+  var originalText = btn.innerHTML;
+  btn.innerHTML = 'Registrando...';
+
   var p    = currentProduct;
   var date = new Date().toISOString().slice(0, 10);
+
   try {
-    if (SB) {
-      var u = await SB.from('products').update({ qty: p.qty - 1 }).eq('id', p.id);
-      if (u.error) throw new Error(u.error.message);
-      var m = await SB.from('movements').insert({ type: 'salida', product_id: p.id, qty: 1, date: date, person: person, branch: branch, comment: 'Entrega rapida NFC' });
-      if (m.error) throw new Error(m.error.message);
+    if (currentMode === 'salida') {
+      var person = document.getElementById('f-person').value.trim();
+      var branch = document.getElementById('f-branch').value.trim();
+      var qty    = parseInt(document.getElementById('f-qty-sal').value) || 1;
+      var comment = document.getElementById('f-comment-sal').value.trim();
+      if (!person) { showToast('Ingresa el nombre del colaborador'); btn.disabled = false; btn.innerHTML = originalText; return; }
+      if (!branch) { showToast('Selecciona una UDN'); btn.disabled = false; btn.innerHTML = originalText; return; }
+      if (qty > p.qty) { showToast('Stock insuficiente — solo hay ' + p.qty + ' uds'); btn.disabled = false; btn.innerHTML = originalText; return; }
+
+      if (SB) {
+        var u = await SB.from('products').update({ qty: p.qty - qty }).eq('id', p.id);
+        if (u.error) throw new Error(u.error.message);
+        var m = await SB.from('movements').insert({ type: 'salida', product_id: p.id, qty: qty, date: date, person: person, branch: branch, comment: comment || 'Entrega rápida NFC' });
+        if (m.error) throw new Error(m.error.message);
+      } else {
+        var local = JSON.parse(localStorage.getItem('unistock-local') || '{}');
+        var pi = (local.prods || []).findIndex(function(x) { return x.id === p.id; });
+        if (pi >= 0) local.prods[pi].qty = p.qty - qty;
+        local.movs = [{ id: Date.now().toString(36), type: 'salida', product_id: p.id, qty: qty, date: date, person: person, branch: branch, comment: comment || 'Entrega rápida NFC', created_at: new Date().toISOString() }].concat(local.movs || []);
+        localStorage.setItem('unistock-local', JSON.stringify(local));
+      }
+      var newQty = p.qty - qty;
+      p.qty = newQty;
+      renderProductCard(p);
+
+      // Success screen
+      document.getElementById('success-icon').className = 'success-icon salida';
+      document.getElementById('success-icon').innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>';
+      document.getElementById('success-title').textContent = '¡Entregado!';
+      document.getElementById('success-sub').textContent  = getTypeName(p) + ' ' + p.color + ' — Talla ' + p.size;
+      document.getElementById('success-detail').innerHTML =
+        '<div class="sd-row"><span class="sd-label">Colaborador</span><span class="sd-val">' + person + '</span></div>' +
+        '<div class="sd-row"><span class="sd-label">UDN</span><span class="sd-val">' + branch + '</span></div>' +
+        '<div class="sd-row"><span class="sd-label">Cantidad</span><span class="sd-val">−' + qty + ' uds</span></div>' +
+        '<div class="sd-row"><span class="sd-label">Fecha</span><span class="sd-val">' + date + '</span></div>' +
+        '<div class="sd-row"><span class="sd-label">Stock restante</span><span class="sd-val">' + newQty + ' uds</span></div>';
+      showState('success');
+
     } else {
-      var local = JSON.parse(localStorage.getItem('unistock-local') || '{}');
-      var pi = (local.prods || []).findIndex(function(x) { return x.id === p.id; });
-      if (pi >= 0) local.prods[pi].qty = p.qty - 1;
-      local.movs = [{ id: Date.now().toString(36), type: 'salida', product_id: p.id, qty: 1, date: date, person: person, branch: branch, comment: 'Entrega rapida NFC' }].concat(local.movs || []);
-      localStorage.setItem('unistock-local', JSON.stringify(local));
+      // ENTRADA
+      var qtyE   = parseInt(document.getElementById('f-qty-ent').value) || 1;
+      var commentE = document.getElementById('f-comment-ent').value.trim();
+      if (qtyE < 1) { showToast('Ingresa una cantidad válida'); btn.disabled = false; btn.innerHTML = originalText; return; }
+
+      if (SB) {
+        var u2 = await SB.from('products').update({ qty: p.qty + qtyE }).eq('id', p.id);
+        if (u2.error) throw new Error(u2.error.message);
+        var m2 = await SB.from('movements').insert({ type: 'entrada', product_id: p.id, qty: qtyE, date: date, person: '—', branch: '—', comment: commentE || 'Entrada rápida NFC' });
+        if (m2.error) throw new Error(m2.error.message);
+      } else {
+        var local2 = JSON.parse(localStorage.getItem('unistock-local') || '{}');
+        var pi2 = (local2.prods || []).findIndex(function(x) { return x.id === p.id; });
+        if (pi2 >= 0) local2.prods[pi2].qty = p.qty + qtyE;
+        local2.movs = [{ id: Date.now().toString(36), type: 'entrada', product_id: p.id, qty: qtyE, date: date, person: '—', branch: '—', comment: commentE || 'Entrada rápida NFC', created_at: new Date().toISOString() }].concat(local2.movs || []);
+        localStorage.setItem('unistock-local', JSON.stringify(local2));
+      }
+      var newQtyE = p.qty + qtyE;
+      p.qty = newQtyE;
+      renderProductCard(p);
+
+      document.getElementById('success-icon').className = 'success-icon entrada';
+      document.getElementById('success-icon').innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5"><path d="M12 5v14M5 12l7 7 7-7"/></svg>';
+      document.getElementById('success-title').textContent = '¡Ingresado!';
+      document.getElementById('success-sub').textContent  = getTypeName(p) + ' ' + p.color + ' — Talla ' + p.size;
+      document.getElementById('success-detail').innerHTML =
+        '<div class="sd-row"><span class="sd-label">Artículo</span><span class="sd-val">' + getTypeName(p) + ' ' + p.color + '</span></div>' +
+        '<div class="sd-row"><span class="sd-label">Cantidad recibida</span><span class="sd-val">+' + qtyE + ' uds</span></div>' +
+        '<div class="sd-row"><span class="sd-label">Fecha</span><span class="sd-val">' + date + '</span></div>' +
+        '<div class="sd-row"><span class="sd-label">Nuevo stock</span><span class="sd-val">' + newQtyE + ' uds</span></div>' +
+        (commentE ? '<div class="sd-row"><span class="sd-label">Comentario</span><span class="sd-val">' + commentE + '</span></div>' : '');
+      showState('success');
     }
-    p.qty -= 1;
-    var type = null;
-    for (var i = 0; i < TYPES.length; i++) { if (TYPES[i].id === p.type_id) { type = TYPES[i]; break; } }
-    document.getElementById('success-sub').textContent = (type ? type.name : '?') + ' ' + p.color + ' - Talla ' + p.size;
-    document.getElementById('success-detail').innerHTML =
-      '<div class="sd-row"><span class="sd-label">Colaborador</span><span class="sd-val">' + person + '</span></div>' +
-      '<div class="sd-row"><span class="sd-label">Sucursal</span><span class="sd-val">' + branch + '</span></div>' +
-      '<div class="sd-row"><span class="sd-label">Fecha</span><span class="sd-val">' + date + '</span></div>' +
-      '<div class="sd-row"><span class="sd-label">Stock restante</span><span class="sd-val">' + p.qty + ' uds</span></div>';
-    showState('success');
   } catch(e) {
     btn.disabled = false;
-    btn.textContent = 'Confirmar entrega';
+    btn.innerHTML = originalText;
     showToast('Error: ' + e.message);
   }
+}
+
+function getTypeName(p) {
+  for (var i = 0; i < TYPES.length; i++) { if (TYPES[i].id === p.type_id) return TYPES[i].name; }
+  return '?';
 }
 
 function showState(name) {
@@ -758,7 +894,12 @@ function goBack() {
   document.getElementById('manual-sku').value = '';
   document.getElementById('f-person').value   = '';
   document.getElementById('f-branch').value   = '';
+  document.getElementById('f-comment-sal').value = '';
+  document.getElementById('f-qty-sal').value  = 1;
+  document.getElementById('f-qty-ent').value  = 1;
+  document.getElementById('f-comment-ent').value = '';
   currentProduct = null;
+  currentMode    = 'salida';
   window.history.replaceState({}, '', window.location.pathname);
   showState('waiting');
 }
