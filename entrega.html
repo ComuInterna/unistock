@@ -374,6 +374,17 @@ body {
 }
 @keyframes slideDown { from { transform: translateY(-12px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
+/* ── COLLAB DROPDOWN ── */
+.ecd-item {
+  padding: 10px 14px; cursor: pointer; font-size: 13.5px;
+  display: flex; align-items: center; justify-content: space-between;
+  transition: background .1s; border-bottom: 1px solid var(--border);
+}
+.ecd-item:last-child { border-bottom: none; }
+.ecd-item:hover { background: var(--bg2); }
+.ecd-item-name { font-weight: 500; color: var(--text); }
+.ecd-item-meta { font-size: 11.5px; color: var(--text3); }
+
 /* ── LOADER ── */
 #loader {
   position: fixed; inset: 0; background: var(--bg); z-index: 8888;
@@ -514,7 +525,20 @@ body {
       <div id="fields-salida">
         <div class="field">
           <label>Colaborador *</label>
-          <input type="text" id="f-person" placeholder="Nombre del colaborador" autocomplete="name">
+          <div style="position:relative;">
+            <input type="text" id="f-person"
+              placeholder="Buscar colaborador..."
+              autocomplete="off"
+              oninput="filterEntregaCollabs(this.value)"
+              onfocus="openEntregaCollabDrop()"
+              onblur="setTimeout(closeEntregaCollabDrop,200)"
+              style="width:100%">
+            <div id="entrega-collab-drop"
+              style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;
+                background:#1a1916;border:1.5px solid #3d3b37;border-radius:10px;
+                box-shadow:0 8px 24px rgba(0,0,0,.5);z-index:300;max-height:220px;overflow-y:auto;">
+            </div>
+          </div>
         </div>
         <div class="field">
           <label>UDN / Sucursal *</label>
@@ -688,16 +712,6 @@ async function loadSupabase(url, key) {
   COLLS = (results[3] && !results[3].error) ? results[3].data || [] : [];
 }
 
-function loadLocal() {
-  var raw = localStorage.getItem('unistock-local');
-  if (!raw) return;
-  var d = JSON.parse(raw);
-  CATS  = d.cats  || [];
-  TYPES = d.types || [];
-  PRODS = d.prods || [];
-  COLLS = d.colls || [];
-}
-
 function saveConfigAndLoad() {
   var url = document.getElementById('sp-url').value.trim().replace(/\/rest\/v1.*$/, '').replace(/\/$/, '');
   var key = document.getElementById('sp-key').value.trim();
@@ -711,7 +725,53 @@ function useLocalAndLoad() {
   location.reload();
 }
 
-// ── SEARCH ──
+function loadLocal() {
+  var raw = localStorage.getItem('unistock-local');
+  if (!raw) return;
+  var d = JSON.parse(raw);
+  CATS  = d.cats  || [];
+  TYPES = d.types || [];
+  PRODS = d.prods || [];
+  COLLS = d.colls || [];
+}
+
+// ── COLLABORATOR DROPDOWN (entrega) ──
+function openEntregaCollabDrop() {
+  filterEntregaCollabs(document.getElementById('f-person').value || '');
+  document.getElementById('entrega-collab-drop').style.display = 'block';
+}
+
+function closeEntregaCollabDrop() {
+  var d = document.getElementById('entrega-collab-drop');
+  if (d) d.style.display = 'none';
+}
+
+function filterEntregaCollabs(q) {
+  var drop = document.getElementById('entrega-collab-drop');
+  if (!drop) return;
+  var ql = (q || '').toLowerCase();
+  var matches = COLLS.filter(function(c) { return c.name.toLowerCase().includes(ql); });
+  if (!matches.length && !ql) matches = COLLS.slice(0, 40);
+  if (!matches.length) {
+    drop.innerHTML = '<div style="padding:12px;font-size:13px;color:#5a5854;text-align:center;">Sin coincidencias</div>';
+    drop.style.display = 'block';
+    return;
+  }
+  drop.innerHTML = matches.map(function(col) {
+    var meta = col.udn || col.department || '';
+    var nameSafe = col.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    return '<div class="ecd-item" onmousedown="pickEntregaCollab(\'' + nameSafe + '\')">' +
+      '<span class="ecd-item-name">' + col.name + '</span>' +
+      (meta ? '<span class="ecd-item-meta">' + meta + '</span>' : '') +
+      '</div>';
+  }).join('');
+  drop.style.display = 'block';
+}
+
+function pickEntregaCollab(name) {
+  document.getElementById('f-person').value = name;
+  closeEntregaCollabDrop();
+}
 function buscarSKU() {
   var sku = document.getElementById('manual-sku').value.trim().toUpperCase();
   if (!sku) { showToast('Ingresa un SKU'); return; }
@@ -898,6 +958,7 @@ function goBack() {
   document.getElementById('f-qty-sal').value  = 1;
   document.getElementById('f-qty-ent').value  = 1;
   document.getElementById('f-comment-ent').value = '';
+  closeEntregaCollabDrop();
   currentProduct = null;
   currentMode    = 'salida';
   window.history.replaceState({}, '', window.location.pathname);

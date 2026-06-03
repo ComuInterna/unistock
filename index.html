@@ -1369,6 +1369,15 @@ tbody tr[draggable] { cursor:grab; } tbody tr[draggable]:active { cursor:grabbin
             Nuevo colaborador
           </button>
         </div>
+        <div class="filters" style="margin-bottom:16px;">
+          <div style="position:relative;flex:1;min-width:180px;">
+            <svg style="position:absolute;left:10px;top:50%;transform:translateY(-50%);width:14px;height:14px;stroke:var(--text3);fill:none;stroke-width:2;pointer-events:none" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="collab-q" placeholder="Buscar por nombre, departamento o UDN..." oninput="renderCollaborators()" style="padding-left:32px;width:100%">
+          </div>
+          <select id="collab-udn-f" onchange="renderCollaborators()" style="font-size:13px;min-width:160px;">
+            <option value="">Todas las UDN</option>
+          </select>
+        </div>
         <div class="table-wrap" id="collab-table"><div class="page-loader"><div class="loader"></div></div></div>
       </div>
 
@@ -1630,6 +1639,56 @@ tbody tr[draggable] { cursor:grab; } tbody tr[draggable]:active { cursor:grabbin
   </div>
 </div>
 
+
+<!-- New collaborator -->
+<div class="backdrop" id="m-new-collab">
+  <div class="modal">
+    <div class="modal-hd">
+      <div><div class="modal-title">Nuevo colaborador</div><div class="modal-sub">Agrega una persona al directorio</div></div>
+      <button class="modal-close" onclick="closeModal('m-new-collab')"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="form-grid">
+      <div class="fg full"><label>Nombre *</label><input type="text" id="nc2-name" placeholder="Ej: Ana García"></div>
+      <div class="fg full"><label>Departamento</label><input type="text" id="nc2-dept" placeholder="Ej: Producción, Ventas..."></div>
+      <div class="fg full">
+        <label>Unidad de Negocio (UDN)</label>
+        <select id="nc2-udn">
+          <option value="">Sin asignar</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-secondary" onclick="closeModal('m-new-collab')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveNewCollab()">Crear colaborador</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit collaborator -->
+<div class="backdrop" id="m-edit-collab">
+  <div class="modal">
+    <div class="modal-hd">
+      <div><div class="modal-title">Editar colaborador</div></div>
+      <button class="modal-close" onclick="closeModal('m-edit-collab')"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <input type="hidden" id="ec2-id">
+    <div class="form-grid">
+      <div class="fg full"><label>Nombre *</label><input type="text" id="ec2-name"></div>
+      <div class="fg full"><label>Departamento</label><input type="text" id="ec2-dept"></div>
+      <div class="fg full">
+        <label>Unidad de Negocio (UDN)</label>
+        <select id="ec2-udn">
+          <option value="">Sin asignar</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-red btn-sm" onclick="deleteCollab()">Eliminar</button>
+      <button class="btn btn-secondary" onclick="closeModal('m-edit-collab')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveEditCollab()">Guardar cambios</button>
+    </div>
+  </div>
+</div>
 
 <!-- Toast container -->
 <div class="toasts" id="toasts"></div>
@@ -2492,11 +2551,12 @@ function filterCollabDrop(q) {
   if (matches.length) {
     html += matches.map(col => {
       const nameSafe = col.name.replace(/'/g, "&#39;");
+      const udnLabel = col.udn || col.department || '';
       return `<div onclick="pickCollab('${nameSafe}','${col.id}')"
         style="padding:9px 12px;cursor:pointer;font-size:13.5px;display:flex;align-items:center;justify-content:space-between;transition:background .1s"
         onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background=''">
         <span>${col.name}</span>
-        <span style="font-size:11px;color:var(--text3)">${col.department||''}</span>
+        <span style="font-size:11px;color:var(--text3)">${udnLabel}</span>
       </div>`;
     }).join('');
   }
@@ -3367,17 +3427,77 @@ function toast(msg, type='') {
 function renderCollaborators() {
   const el = document.getElementById('collab-table');
   if (!el) return;
+
+  // Populate UDN filter dropdown
+  const udnFil = document.getElementById('collab-udn-f');
+  if (udnFil && udnFil.options.length <= 1) {
+    UDN_LIST.forEach(u => {
+      const o = document.createElement('option'); o.value = u; o.textContent = u;
+      udnFil.appendChild(o);
+    });
+  }
+
+  // Populate UDN selects in modals
+  ['nc2-udn','ec2-udn'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (sel && sel.options.length <= 1) {
+      UDN_LIST.forEach(u => {
+        const o = document.createElement('option'); o.value = u; o.textContent = u;
+        sel.appendChild(o);
+      });
+    }
+  });
+
   if (!COLLS.length) {
     el.innerHTML = `<div class="empty"><div class="empty-icon" style="font-size:32px;margin-bottom:10px">👥</div><h3>Sin colaboradores</h3><p>Agrega tu primer colaborador</p></div>`;
     return;
   }
+
+  // Filters
+  const q      = (document.getElementById('collab-q')?.value||'').toLowerCase();
+  const udnF   = document.getElementById('collab-udn-f')?.value||'';
+
+  let list = COLLS.filter(col => {
+    if (udnF && (col.udn||'') !== udnF) return false;
+    if (q) {
+      const str = [col.name, col.department||'', col.udn||''].join(' ').toLowerCase();
+      if (!str.includes(q)) return false;
+    }
+    return true;
+  });
+
+  if (!list.length) {
+    el.innerHTML = `<div class="empty"><div class="empty-icon">🔍</div><h3>Sin resultados</h3><p>Ajusta la búsqueda o el filtro</p></div>`;
+    return;
+  }
+
+  const isMobile = window.innerWidth <= 768;
+  if (isMobile) {
+    el.innerHTML = '<div style="background:var(--surface);border-radius:var(--r);border:1px solid var(--border)">' +
+      list.map((col, idx) => {
+        const entregas = MOVS.filter(m => m.person === col.name && m.type === 'salida').length;
+        return `<div style="padding:13px 16px;${idx>0?'border-top:1px solid var(--border)':''};display:flex;align-items:center;gap:12px;">
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:14px;font-weight:600;">${col.name}</div>
+            <div style="font-size:12px;color:var(--text3);margin-top:2px;">${col.department||''} ${col.udn?'· '+col.udn:''}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+            <span class="badge badge-neutral" style="font-family:var(--mono)">${entregas}</span>
+            <button class="btn btn-secondary btn-sm" onclick="openEditCollab('${col.id}')">Editar</button>
+          </div>
+        </div>`;
+      }).join('') + '</div>';
+    return;
+  }
+
   el.innerHTML = `<table>
-    <thead><tr><th>Nombre</th><th>Departamento</th><th>Entregas</th><th></th></tr></thead>
-    <tbody>${COLLS.map(col => {
+    <thead><tr><th>Nombre</th><th>Departamento</th><th>UDN</th><th>Entregas</th><th></th></tr></thead>
+    <tbody>${list.map(col => {
       const entregas = MOVS.filter(m => m.person === col.name && m.type === 'salida').length;
       return `<tr>
         <td><strong>${col.name}</strong></td>
-        <td style="color:var(--text2)">${col.department||'—'}</td>
+        <td style="color:var(--text2)">${col.department||'<span style="color:var(--text3)">—</span>'}</td>
+        <td><span style="font-size:12.5px;color:var(--text2)">${col.udn||'<span style="color:var(--text3)">—</span>'}</span></td>
         <td><span class="badge badge-neutral" style="font-family:var(--mono)">${entregas}</span></td>
         <td style="display:flex;gap:5px">
           <button class="btn btn-secondary btn-sm" onclick="openEditCollab('${col.id}')">Editar</button>
@@ -3391,16 +3511,18 @@ function renderCollaborators() {
 async function saveNewCollab() {
   const name = document.getElementById('nc2-name').value.trim();
   const dept = document.getElementById('nc2-dept').value.trim();
+  const udn  = document.getElementById('nc2-udn')?.value || '';
   if (!name) { toast('Ingresa el nombre','t-red'); return; }
   if (COLLS.find(c => c.name.toLowerCase() === name.toLowerCase())) {
     toast('Ya existe un colaborador con ese nombre','t-red'); return;
   }
   try {
-    const row = await dbInsert('collaborators', { name, department: dept });
+    const row = await dbInsert('collaborators', { name, department: dept, udn: udn||null });
     if (CFG.mode==='local') COLLS.push(row);
     closeModal('m-new-collab');
     document.getElementById('nc2-name').value = '';
     document.getElementById('nc2-dept').value = '';
+    if (document.getElementById('nc2-udn')) document.getElementById('nc2-udn').value = '';
     renderCollaborators();
     toast('Colaborador "'+name+'" agregado','t-green');
   } catch(e) { toast('Error: '+e.message,'t-red'); }
@@ -3409,9 +3531,18 @@ async function saveNewCollab() {
 function openEditCollab(id) {
   const col = COLLS.find(c => c.id === id);
   if (!col) return;
+  // Ensure UDN select is populated before setting value
+  const udnSel = document.getElementById('ec2-udn');
+  if (udnSel && udnSel.options.length <= 1) {
+    UDN_LIST.forEach(u => {
+      const o = document.createElement('option'); o.value = u; o.textContent = u;
+      udnSel.appendChild(o);
+    });
+  }
   document.getElementById('ec2-id').value   = id;
   document.getElementById('ec2-name').value = col.name;
   document.getElementById('ec2-dept').value = col.department || '';
+  if (udnSel) udnSel.value = col.udn || '';
   openModal('m-edit-collab');
 }
 
@@ -3419,11 +3550,12 @@ async function saveEditCollab() {
   const id   = document.getElementById('ec2-id').value;
   const name = document.getElementById('ec2-name').value.trim();
   const dept = document.getElementById('ec2-dept').value.trim();
+  const udn  = document.getElementById('ec2-udn')?.value || '';
   if (!name) { toast('Ingresa el nombre','t-red'); return; }
   try {
-    await dbUpdate('collaborators', id, { name, department: dept });
+    await dbUpdate('collaborators', id, { name, department: dept, udn: udn||null });
     const col = COLLS.find(c => c.id === id);
-    if (CFG.mode==='local' && col) { col.name = name; col.department = dept; }
+    if (CFG.mode==='local' && col) { col.name = name; col.department = dept; col.udn = udn||null; }
     closeModal('m-edit-collab');
     renderCollaborators();
     toast('Colaborador actualizado','t-green');
