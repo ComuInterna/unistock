@@ -277,6 +277,7 @@ tbody tr:hover td { background:var(--bg); }
 .badge-neutral { background:var(--bg); color:var(--text2); border:1px solid var(--border); }
 .badge-entrada { background:var(--green2); color:var(--green); }
 .badge-salida  { background:var(--red2);   color:var(--red); }
+.badge-devolucion { background:var(--amber2); color:var(--amber); }
 .dot { width:6px; height:6px; border-radius:50%; display:inline-block; }
 
 /* ═══════════════════════════ STOCK PILL ═══════════════════════════ */
@@ -841,6 +842,9 @@ tbody tr[draggable] { cursor:grab; } tbody tr[draggable]:active { cursor:grabbin
   /* Remove forced min-width on tables */
   table { min-width: 0; }
   .table-wrap { border-radius: var(--r); overflow: hidden; }
+  /* Stock sucursales map responsive */
+  #ss-grid { grid-template-columns: 1fr !important; }
+  #ss-panel { order: -1; }
 
   /* History mobile cards */
   .hist-card {
@@ -994,9 +998,17 @@ tbody tr[draggable] { cursor:grab; } tbody tr[draggable]:active { cursor:grabbin
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
         <span>Historial</span>
       </button>
+      <button class="nav-item" data-page="devoluciones" onclick="nav('devoluciones',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
+        <span>Devoluciones</span>
+      </button>
       <button class="nav-item" data-page="reportes" onclick="nav('reportes',this)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
         <span>Reportes</span>
+      </button>
+      <button class="nav-item" data-page="stock-sucursales" onclick="nav('stock-sucursales',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 12 2 21 11 21 22 3 22"/><rect x="9" y="14" width="6" height="8"/></svg>
+        <span>Stock Sucursales</span>
       </button>
       <div class="nav-group-label">Configuración</div>
       <button class="nav-item" data-page="catalogo" onclick="nav('catalogo',this)">
@@ -1219,11 +1231,76 @@ tbody tr[draggable] { cursor:grab; } tbody tr[draggable]:active { cursor:grabbin
           </button>
         </div>
         <div class="filters">
-          <select id="h-type" onchange="renderHistorial()"><option value="">Entrada y salida</option><option value="entrada">Solo entradas</option><option value="salida">Solo salidas</option></select>
+          <select id="h-type" onchange="renderHistorial()"><option value="">Entrada y salida</option><option value="entrada">Solo entradas</option><option value="salida">Solo salidas</option><option value="devolucion">Solo devoluciones</option></select>
           <input type="text" id="h-q" placeholder="Buscar persona, UDN, producto..." oninput="renderHistorial()">
           <span id="h-count" style="font-size:12px;color:var(--text3);font-family:var(--mono);margin-left:auto;"></span>
         </div>
         <div class="table-wrap" id="hist-table"><div class="page-loader"><div class="loader"></div></div></div>
+      </div>
+
+      <!-- ═══ DEVOLUCIONES ═══ -->
+      <div id="page-devoluciones" class="page">
+        <div class="sh">
+          <div><div class="sh-t">Devoluciones</div><div class="sh-s">Artículos devueltos por colaboradores</div></div>
+        </div>
+        <div class="filters" style="margin-bottom:20px;">
+          <select id="dev-status" onchange="renderDevoluciones()" style="min-width:160px;">
+            <option value="">Todos los estados</option>
+            <option value="pendiente">Pendiente de reentrega</option>
+            <option value="reentregado">Reentregado</option>
+          </select>
+          <input type="text" id="dev-q" placeholder="Buscar colaborador, artículo, UDN..." oninput="renderDevoluciones()" style="flex:1;min-width:180px;">
+          <span id="dev-count" style="font-size:12px;color:var(--text3);font-family:var(--mono);margin-left:auto;white-space:nowrap;"></span>
+        </div>
+        <!-- Summary pills -->
+        <div id="dev-summary" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;"></div>
+        <!-- Table -->
+        <div class="table-wrap" id="dev-table"><div class="page-loader"><div class="loader"></div></div></div>
+      </div>
+
+      <!-- ═══ STOCK SUCURSALES ═══ -->
+      <div id="page-stock-sucursales" class="page">
+        <div class="sh">
+          <div><div class="sh-t">Stock Sucursales</div><div class="sh-s">Monitorea artículos clave por unidad de negocio</div></div>
+          <button class="btn btn-primary" onclick="openModal('m-new-sucursal-item')">
+            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Asignar artículo
+          </button>
+        </div>
+        <!-- Search + filter row -->
+        <div class="filters" style="margin-bottom:20px;flex-wrap:wrap;">
+          <div style="position:relative;flex:1;min-width:200px;">
+            <svg style="position:absolute;left:10px;top:50%;transform:translateY(-50%);width:14px;height:14px;stroke:var(--text3);fill:none;stroke-width:2;pointer-events:none" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="ss-q" placeholder="Buscar sucursal o estado..." oninput="renderSucursales()" style="padding-left:32px;width:100%;">
+          </div>
+          <select id="ss-status" onchange="renderSucursales()" style="min-width:160px;">
+            <option value="">Todos los estados</option>
+            <option value="ok">Stock OK</option>
+            <option value="low">Stock bajo</option>
+            <option value="out">Sin stock</option>
+          </select>
+        </div>
+        <!-- Map + panel layout -->
+        <div style="display:grid;grid-template-columns:1fr 360px;gap:20px;align-items:start;" id="ss-grid">
+          <!-- Map -->
+          <div class="card" style="padding:0;overflow:hidden;position:relative;min-height:440px;">
+            <div id="ss-map-container" style="width:100%;height:100%;min-height:440px;display:flex;align-items:center;justify-content:center;padding:20px;">
+              <!-- SVG map injected by JS -->
+            </div>
+          </div>
+          <!-- Side panel -->
+          <div id="ss-panel">
+            <div class="card" style="margin-bottom:14px;">
+              <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:12px;">Resumen global</div>
+              <div id="ss-global-summary" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;"></div>
+            </div>
+            <div id="ss-selected-info">
+              <div style="font-size:13px;color:var(--text3);text-align:center;padding:20px;">Haz clic en un estado del mapa para ver el detalle</div>
+            </div>
+          </div>
+        </div>
+        <!-- Full sucursales list below map -->
+        <div style="margin-top:20px;" id="ss-list"></div>
       </div>
 
       <!-- ═══ CATÁLOGO ═══ -->
@@ -1690,6 +1767,66 @@ tbody tr[draggable] { cursor:grab; } tbody tr[draggable]:active { cursor:grabbin
   </div>
 </div>
 
+<!-- Modal: Registrar devolución -->
+<div class="backdrop" id="m-devolucion">
+  <div class="modal">
+    <div class="modal-hd">
+      <div><div class="modal-title">Registrar devolución</div><div class="modal-sub" id="dev-modal-sub">Artículo devuelto por el colaborador</div></div>
+      <button class="modal-close" onclick="closeModal('m-devolucion')"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <input type="hidden" id="dev-mov-id">
+    <div class="form-grid">
+      <div class="fg full">
+        <label>Estado de la devolución *</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px;">
+          <label style="cursor:pointer;display:flex;align-items:flex-start;gap:10px;padding:12px;border:1.5px solid var(--border);border-radius:var(--r2);transition:border .15s;" id="dev-opt-pendiente">
+            <input type="radio" name="dev-status-opt" value="pendiente" checked style="margin-top:2px;flex-shrink:0;" onchange="updateDevOptStyle()">
+            <div>
+              <div style="font-size:13px;font-weight:600;color:var(--amber)">Pendiente de reentrega</div>
+              <div style="font-size:11.5px;color:var(--text3);margin-top:2px;line-height:1.4">El artículo está en proceso de ser reasignado o revisado</div>
+            </div>
+          </label>
+          <label style="cursor:pointer;display:flex;align-items:flex-start;gap:10px;padding:12px;border:1.5px solid var(--border);border-radius:var(--r2);transition:border .15s;" id="dev-opt-reentregado">
+            <input type="radio" name="dev-status-opt" value="reentregado" style="margin-top:2px;flex-shrink:0;" onchange="updateDevOptStyle()">
+            <div>
+              <div style="font-size:13px;font-weight:600;color:var(--green)">Ya fue reentregado</div>
+              <div style="font-size:11.5px;color:var(--text3);margin-top:2px;line-height:1.4">El artículo se entregó a otra persona o está de vuelta en stock</div>
+            </div>
+          </label>
+        </div>
+      </div>
+      <div class="fg full"><label>Motivo de devolución</label><input type="text" id="dev-comment" placeholder="Talla incorrecta, mal estado, baja..."></div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-secondary" onclick="closeModal('m-devolucion')">Cancelar</button>
+      <button class="btn btn-accent" onclick="confirmarDevolucion()">↩ Registrar devolución</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Asignar artículo a sucursal -->
+<div class="backdrop" id="m-new-sucursal-item">
+  <div class="modal modal-lg">
+    <div class="modal-hd">
+      <div><div class="modal-title">Asignar artículo a sucursal</div><div class="modal-sub">Define cuántas unidades debe tener cada UDN</div></div>
+      <button class="modal-close" onclick="closeModal('m-new-sucursal-item')"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="form-grid">
+      <div class="fg full"><label>UDN / Sucursal *</label>
+        <select id="si-udn"><option value="">Selecciona una UDN...</option></select>
+      </div>
+      <div class="fg full"><label>Artículo *</label><div id="si-prod-sel"></div></div>
+      <div class="fg"><label>Cantidad actual en la sucursal *</label><input type="number" id="si-branch-qty" min="0" value="0" placeholder="Ej: 3"></div>
+      <div class="fg"><label>Stock mínimo requerido *</label><input type="number" id="si-min" min="1" value="1" placeholder="Ej: 5"></div>
+      <div class="fg"><label>Nota (opcional)</label><input type="text" id="si-note" placeholder="Ej: Para temporada alta..."></div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-secondary" onclick="closeModal('m-new-sucursal-item')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveSucursalItem()">Asignar</button>
+    </div>
+  </div>
+</div>
+
 <!-- Toast container -->
 <div class="toasts" id="toasts"></div>
 
@@ -2027,7 +2164,7 @@ async function dbDelete(table, id) {
 const PAGE_TITLES = {
   dashboard:'Dashboard', inventario:'Inventario', entradas:'Entradas',
   salidas:'Salidas', historial:'Historial', catalogo:'Catálogo', colaboradores:'Colaboradores', grupos:'Grupos',
-  stock:'Stock', reportes:'Reportes'
+  stock:'Stock', reportes:'Reportes', devoluciones:'Devoluciones', 'stock-sucursales':'Stock Sucursales'
 };
 
 function nav(page, btn) {
@@ -2051,6 +2188,8 @@ function renderPage(page) {
   if (page === 'grupos')        renderGroups();
   if (page === 'stock')         renderStock();
   if (page === 'reportes')      renderReportes();
+  if (page === 'devoluciones')  renderDevoluciones();
+  if (page === 'stock-sucursales') renderSucursales();
 }
 
 function refreshAllViews() {
@@ -2797,19 +2936,31 @@ function renderHistorial() {
     // Desktop: full table
     document.getElementById('hist-table').innerHTML = `
       <table>
-        <thead><tr><th>Tipo</th><th>Artículo</th><th>Cat.</th><th>Talla</th><th>Cant.</th><th>Fecha</th><th>Persona</th><th>UDN</th><th>Comentario</th></tr></thead>
+        <thead><tr><th>Tipo</th><th>Artículo</th><th>Cat.</th><th>Talla</th><th>Cant.</th><th>Fecha</th><th>Persona</th><th>UDN</th><th>Comentario</th><th></th></tr></thead>
         <tbody>${list.map(m=>{
           const p=getProd(m.product_id); const t=getType(p?.type_id); const c=getCat(p?.category_id);
+          const isDev = m.type === 'devolucion';
+          const typeColor = m.type==='entrada'?'var(--green)': isDev?'var(--amber)':'var(--red)';
+          const sign      = m.type==='entrada'?'+': isDev?'↩':'-';
+          const devStatus = isDev ? (m.dev_status==='reentregado'
+            ? `<span style="font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:20px;background:var(--green2);color:var(--green)">Reentregado</span>`
+            : `<span style="font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:20px;background:var(--amber2);color:var(--amber)">Pendiente</span>`) : '';
           return `<tr>
-            <td><span class="badge badge-${m.type}">${m.type}</span></td>
+            <td>
+              <span class="badge badge-${m.type}" style="${isDev?'background:var(--amber2);color:var(--amber)':''}">${isDev?'devolución':m.type}</span>
+              ${devStatus}
+            </td>
             <td><strong>${t?.name||'—'}</strong> ${p?.color||''}</td>
             <td><span style="display:inline-flex;align-items:center;gap:5px">${getCatIcon(c?.icon||'','15px')} ${c?.name||'—'}</span></td>
             <td><span class="badge badge-neutral">${p?.size||'—'}</span></td>
-            <td class="td-mono" style="color:${m.type==='entrada'?'var(--green)':'var(--red)'};font-weight:600">${m.type==='entrada'?'+':'-'}${m.qty}</td>
+            <td class="td-mono" style="color:${typeColor};font-weight:600">${sign}${m.qty}</td>
             <td style="white-space:nowrap">${fmtDate(m.date)}</td>
             <td>${m.person!=='—'?m.person:'<span style="color:var(--text3)">—</span>'}</td>
             <td>${m.branch!=='—'?m.branch:'<span style="color:var(--text3)">—</span>'}</td>
-            <td style="font-size:12px;color:var(--text3);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.comment||'—'}</td>
+            <td style="font-size:12px;color:var(--text3);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.comment||'—'}</td>
+            <td>${m.type==='salida'?`<button class="btn btn-ghost btn-sm" onclick="openDevolucionModal('${m.id}')" style="font-size:11.5px;white-space:nowrap;color:var(--amber)">↩ Devolver</button>`:
+               (isDev&&m.dev_status!=='reentregado'?`<button class="btn btn-ghost btn-sm" onclick="marcarReentregado('${m.id}')" style="font-size:11.5px;color:var(--green)">✓ Reentregar</button>`:'')
+            }</td>
           </tr>`;
         }).join('')}</tbody>
       </table>`;
@@ -4417,6 +4568,561 @@ window.nav = function(page, btn) {
 };
 
 window.addEventListener('load', initMobileNav);
+
+// ─── DEVOLUCIONES ─────────────────────────────────────────────────────────────
+let _pendingDevMovId = null;
+
+function openDevolucionModal(movId) {
+  const m = MOVS.find(x => x.id === movId);
+  if (!m) return;
+  const p = getProd(m.product_id);
+  const t = getType(p?.type_id);
+  _pendingDevMovId = movId;
+  document.getElementById('dev-mov-id').value = movId;
+  document.getElementById('dev-modal-sub').textContent =
+    `${t?.name||'?'} ${p?.color||''} — ${m.person!=='—'?m.person:'Sin persona'} · ${m.branch!=='—'?m.branch:''}`;
+  document.getElementById('dev-comment').value = '';
+  // Reset radio
+  const radios = document.querySelectorAll('input[name="dev-status-opt"]');
+  radios.forEach(r => { r.checked = r.value === 'pendiente'; });
+  updateDevOptStyle();
+  openModal('m-devolucion');
+}
+
+function updateDevOptStyle() {
+  const val = document.querySelector('input[name="dev-status-opt"]:checked')?.value || 'pendiente';
+  const colors = { pendiente: 'var(--amber)', reentregado: 'var(--green)' };
+  document.getElementById('dev-opt-pendiente').style.borderColor =
+    val === 'pendiente' ? 'var(--amber)' : 'var(--border)';
+  document.getElementById('dev-opt-reentregado').style.borderColor =
+    val === 'reentregado' ? 'var(--green)' : 'var(--border)';
+}
+
+async function confirmarDevolucion() {
+  const movId  = document.getElementById('dev-mov-id').value;
+  const status = document.querySelector('input[name="dev-status-opt"]:checked')?.value || 'pendiente';
+  const comment = document.getElementById('dev-comment').value.trim();
+  const origMov = MOVS.find(m => m.id === movId);
+  if (!origMov) { toast('Movimiento no encontrado','t-red'); return; }
+
+  const p = getProd(origMov.product_id);
+  if (!p) { toast('Artículo no encontrado','t-red'); return; }
+
+  try {
+    // Insert devolucion movement (returns stock)
+    const newMov = await dbInsert('movements', {
+      type: 'devolucion',
+      product_id: origMov.product_id,
+      qty: origMov.qty,
+      date: new Date().toISOString().slice(0,10),
+      person: origMov.person,
+      branch: origMov.branch,
+      comment: comment || 'Devolución de ' + origMov.person,
+      dev_status: status,
+      ref_mov_id: movId
+    });
+    if (CFG.mode === 'local') MOVS.unshift({ ...newMov, type:'devolucion', dev_status:status });
+
+    // Restore stock (devolucion = items back to warehouse)
+    const newQty = p.qty + origMov.qty;
+    await dbUpdate('products', p.id, { qty: newQty });
+    if (CFG.mode === 'local') p.qty = newQty;
+
+    closeModal('m-devolucion');
+    toast(`Devolución registrada — +${origMov.qty} uds devueltas al stock`, 't-green');
+    renderHistorial();
+    renderDashboard();
+    _pendingDevMovId = null;
+  } catch(e) { toast('Error: '+e.message,'t-red'); }
+}
+
+async function marcarReentregado(movId) {
+  try {
+    await dbUpdate('movements', movId, { dev_status: 'reentregado' });
+    const m = MOVS.find(x => x.id === movId);
+    if (m && CFG.mode === 'local') m.dev_status = 'reentregado';
+    toast('Marcado como reentregado','t-green');
+    renderHistorial();
+    renderDevoluciones();
+  } catch(e) { toast('Error: '+e.message,'t-red'); }
+}
+
+function renderDevoluciones() {
+  const el = document.getElementById('dev-table');
+  if (!el) return;
+
+  const statusF = document.getElementById('dev-status')?.value || '';
+  const q       = (document.getElementById('dev-q')?.value||'').toLowerCase();
+
+  let list = MOVS.filter(m => {
+    if (m.type !== 'devolucion') return false;
+    if (statusF && m.dev_status !== statusF) return false;
+    if (q) {
+      const p = getProd(m.product_id);
+      const t = getType(p?.type_id);
+      const s = [m.person, m.branch, m.comment, t?.name, p?.color, p?.size].join(' ').toLowerCase();
+      if (!s.includes(q)) return false;
+    }
+    return true;
+  });
+
+  // Summary
+  const total   = MOVS.filter(m=>m.type==='devolucion').length;
+  const pending = MOVS.filter(m=>m.type==='devolucion'&&m.dev_status==='pendiente').length;
+  const done    = MOVS.filter(m=>m.type==='devolucion'&&m.dev_status==='reentregado').length;
+  document.getElementById('dev-summary').innerHTML = `
+    <div class="summary-pill"><div class="pill-icon">↩</div><div><div class="pill-val">${total}</div><div class="pill-lbl">Total devoluciones</div></div></div>
+    <div class="summary-pill pill-warn"><div class="pill-icon">⏳</div><div><div class="pill-val" style="color:var(--amber)">${pending}</div><div class="pill-lbl">Pendientes</div></div></div>
+    <div class="summary-pill"><div class="pill-icon">✅</div><div><div class="pill-val" style="color:var(--green)">${done}</div><div class="pill-lbl">Reentregados</div></div></div>`;
+
+  document.getElementById('dev-count').textContent = `${list.length} devoluciones`;
+
+  if (!list.length) {
+    el.innerHTML = `<div class="empty"><div class="empty-icon">↩</div><h3>Sin devoluciones</h3><p>Registra una devolución desde el Historial haciendo clic en "↩ Devolver" en cualquier salida</p></div>`;
+    return;
+  }
+
+  el.innerHTML = `<table>
+    <thead><tr><th>Estado</th><th>Artículo</th><th>Talla</th><th>Cant.</th><th>Fecha</th><th>Colaborador</th><th>UDN</th><th>Motivo</th><th></th></tr></thead>
+    <tbody>${list.map(m => {
+      const p=getProd(m.product_id); const t=getType(p?.type_id);
+      const isPending = m.dev_status !== 'reentregado';
+      return `<tr>
+        <td>
+          ${isPending
+            ? `<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:var(--amber2);color:var(--amber)">⏳ Pendiente</span>`
+            : `<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:var(--green2);color:var(--green)">✓ Reentregado</span>`
+          }
+        </td>
+        <td><strong>${t?.name||'—'}</strong> ${p?.color||''}</td>
+        <td><span class="badge badge-neutral">${p?.size||'—'}</span></td>
+        <td class="td-mono" style="color:var(--amber);font-weight:700">↩${m.qty}</td>
+        <td style="white-space:nowrap">${fmtDate(m.date)}</td>
+        <td>${m.person!=='—'?`<strong>${m.person}</strong>`:'<span style="color:var(--text3)">—</span>'}</td>
+        <td>${m.branch!=='—'?m.branch:'<span style="color:var(--text3)">—</span>'}</td>
+        <td style="font-size:12px;color:var(--text3);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.comment||'—'}</td>
+        <td>
+          ${isPending
+            ? `<button class="btn btn-ghost btn-sm" onclick="marcarReentregado('${m.id}')" style="font-size:11.5px;color:var(--green);white-space:nowrap">✓ Reentregar</button>`
+            : ''}
+        </td>
+      </tr>`;
+    }).join('')}
+    </tbody>
+  </table>`;
+}
+
+// ─── STOCK SUCURSALES ─────────────────────────────────────────────────────────
+// Persisted in localStorage: array of { id, udn, product_id, min_qty, note }
+let SUCURSAL_ITEMS = [];
+let _selectedSucursalState = null;
+
+// UDN → Estado de México mapping
+const UDN_STATE_MAP = {
+  'CEDIS':                    { state: 'GTO',  label: 'Guanajuato', city: 'León' },
+  'City Center':              { state: 'GTO',  label: 'Guanajuato', city: 'León' },
+  'Foro 4':                   { state: 'GTO',  label: 'Guanajuato', city: 'León' },
+  'Call Center':              { state: 'GTO',  label: 'Guanajuato', city: 'Irapuato' },
+  'Sucursal Aguascalientes':  { state: 'AGS',  label: 'Aguascalientes', city: 'Aguascalientes' },
+  'Sucursal Chapultepec':     { state: 'CDMX', label: 'Ciudad de México', city: 'CDMX' },
+  'Sucursal La Viga':         { state: 'CDMX', label: 'Ciudad de México', city: 'CDMX' },
+  'Sucursal León':            { state: 'GTO',  label: 'Guanajuato', city: 'León' },
+  'Sucursal Naucalpan':       { state: 'MEX',  label: 'Estado de México', city: 'Naucalpan' },
+  'Sucursal Nogalar':         { state: 'NLE',  label: 'Nuevo León', city: 'Monterrey' },
+  'Sucursal Puebla':          { state: 'PUE',  label: 'Puebla', city: 'Puebla' },
+  'Sucursal Querétaro':       { state: 'QRO',  label: 'Querétaro', city: 'Querétaro' },
+  'Sucursal San Luis Potosí': { state: 'SLP',  label: 'San Luis Potosí', city: 'SLP' },
+  'Sucursal Tijuana':         { state: 'BCN',  label: 'Baja California', city: 'Tijuana' },
+  'Sucursal Toluca':          { state: 'MEX',  label: 'Estado de México', city: 'Toluca' },
+  'Sucursal Zapopan':         { state: 'JAL',  label: 'Jalisco', city: 'Guadalajara' },
+};
+
+// State codes → filled polygon IDs in SVG map
+const STATE_ACTIVE = ['AGS','BCN','CDMX','GTO','JAL','MEX','NLE','PUE','QRO','SLP'];
+
+function loadSucursalItems() {
+  try { SUCURSAL_ITEMS = JSON.parse(localStorage.getItem('unistock-sucursal-items')||'[]'); } catch(e) { SUCURSAL_ITEMS = []; }
+}
+function saveSucursalItems() {
+  try { localStorage.setItem('unistock-sucursal-items', JSON.stringify(SUCURSAL_ITEMS)); } catch(e) {}
+}
+
+function getSucursalStatus(udn) {
+  const items = SUCURSAL_ITEMS.filter(i => i.udn === udn);
+  if (!items.length) return 'none';
+  const statuses = items.map(i => {
+    const qty = i.branch_qty ?? 0;
+    if (qty === 0) return 'out';
+    if (qty < i.min_qty) return 'low';
+    return 'ok';
+  });
+  if (statuses.includes('out')) return 'out';
+  if (statuses.includes('low')) return 'low';
+  return 'ok';
+}
+
+function getStateStatus(stateCode) {
+  const udns = UDN_LIST.filter(u => (UDN_STATE_MAP[u]?.state||'') === stateCode);
+  if (!udns.length) return 'none';
+  const statuses = udns.map(u => getSucursalStatus(u)).filter(s => s !== 'none');
+  if (!statuses.length) return 'none';
+  if (statuses.includes('out')) return 'out';
+  if (statuses.includes('low')) return 'low';
+  return 'ok';
+}
+
+function renderSucursales() {
+  loadSucursalItems();
+  renderMexicoMap();
+  renderSucursalGlobalSummary();
+  renderSucursalList();
+}
+
+function renderMexicoMap() {
+  const container = document.getElementById('ss-map-container');
+  if (!container) return;
+
+  // Light-theme status colors
+  const SC = {
+    ok:       { fill: '#d4edda', stroke: '#2a7d4f', sw: 1.5 },
+    low:      { fill: '#fef3cd', stroke: '#9a6000', sw: 1.5 },
+    out:      { fill: '#f8d7da', stroke: '#be3a2b', sw: 1.5 },
+    // States WITH udns but no stock items assigned yet — distinct warm tint
+    presence: { fill: '#e8e4f3', stroke: '#7c6db0', sw: 1.2 },
+    // States WITHOUT any UDN — muted grey
+    none:     { fill: '#f0ede8', stroke: '#d8d4cc', sw: 0.6 },
+    sel:      { sw: 2.5, stroke: '#1a1916' },
+  };
+
+  // SVG state code → our state code
+  const SVG_TO_STATE = {
+    CDMX:'CDMX', QROO:'QROO', TLX:'TLX', 'MEX-2':'MEX'
+  };
+
+  const STATE_NAMES = {
+    AGS:'Aguascalientes', BCN:'Baja California', BCS:'Baja California Sur',
+    CAM:'Campeche', CDMX:'Ciudad de México', CHH:'Chihuahua', CHP:'Chiapas',
+    COA:'Coahuila', COL:'Colima', DUR:'Durango', GRO:'Guerrero',
+    GTO:'Guanajuato', HGO:'Hidalgo', JAL:'Jalisco', MEX:'Estado de México',
+    MIC:'Michoacán', MOR:'Morelos', NAY:'Nayarit', NLE:'Nuevo León',
+    OAX:'Oaxaca', PUE:'Puebla', QRO:'Querétaro', QROO:'Quintana Roo',
+    SIN:'Sinaloa', SLP:'San Luis Potosí', SON:'Sonora', TAB:'Tabasco',
+    TAM:'Tamaulipas', TLX:'Tlaxcala', VER:'Veracruz', YUC:'Yucatán', ZAC:'Zacatecas'
+  };
+
+  function svgToState(svgId) {
+    return SVG_TO_STATE[svgId] || svgId;
+  }
+
+  const stateStatus = {};
+  const activeStates = new Set(UDN_LIST.map(u => UDN_STATE_MAP[u]?.state).filter(Boolean));
+
+  // Build geometry
+  const GEOM = {"ZAC":{"type":"path","data":"M745.23,548.62l-4.44-.47-1.53-4.28-2.49-.72,6.98-3.03,1.9-4.4-2.51-2.31-2.38-.07-.24-1.94,2.17-.58,3.73-3.9,1.57-7.33,4.91-3.38,3.28-2.98,9.38-4.6,2.1-3.42,3.38-7.82-1.05-3.06-2.78-.21.69-4.9-5.21-.46-4.08,1.63-1.41,3.5,1.2,2.27-3.54,2.67-3,3.17-2.89-1.25-1.61,1.66h-1.3s-.04-.22-.04-.22l7.89-10.67.18-6.55-4.9-4.07-6.16,1.27,1.67-2.07,2.49-1.77-.24-4.37-4.69-1.19-3.4.86-4.55,3.08-.7,2.21,1.35,6.2-1.81-1.67-6.81,2.64-.92,4.08-2.16.35-1.1,1.1-.21-.38.51-4.12,2.65-4.95,2.65-2.95,4.99-1.92,2.4-7.91.61-3.89-.28-5.33.43-1.74,4.13-5.31,4.15-10.32.73-3.02,4.34-4.66,5.71-4.57.09-7.72,1.06-1.96,1.24-6.57-.18-5.09,3.29-1.02,4.62-3.95,4.22-4.85,4.45-3.16,3.16-3.98,6.03.14,3.53,1.3,3.79-1.36,7.3,3.03,1.68-1.73,2.02.32,10.72-1.1,2.15-4.44-.19-8.15-1.36-.6,2.91-8.07-3.55-3.26-1.04-2.34.22-2.8.42-1.87,8.98-2.47,13.83,1,3.16,2.76,3.49,1.62,2.14,2.46,2.57,5.98,3.54-.14-.45,5.31,6.58.85,1.97-1.69,3.16-.75,3.85.54,1.01.86,1.65,6.31,2.07,2.76,4.01,1.86,4.38-2.61.13.03-5.57,7.27-5.54,1.68-2.97,5.73-5.39,2.27-2.61,3.04-1.82,5.34,1.11,1.91-2.42,4.3-1.91,2.25-7.18,2.28-3.44,3.27-5.98,7.35-8.97,4.03-2.92,4.16-3.94.82-5.1-1.47-2.89,4.32.64,2.28-1.24,1.98.61,5.37-4.12,9.24,1.29,5.32,5.91,4.55,1.45,2.55,4.84,1.53,1.45,5.31,2.6,2.48,7.61-1.76,8.6-8.12,2.23-.8,1.45,2.89-.63,2.17-6.74,11.11-1.1,3.25,1.01,5.59-2.37,5.3-3.95,6.35-1.78.33-2.72-1.61-3.45-4.09-3.34-2.23-4.74-1.42-1.08-4.34.04-3.14-4.83-3.21-3.15-3.7-1.35-4.31-5.96,5.54-5.9,3.33-5.31,2.1-3.8,7.65-5.61,6.39-3.11,5.4-.39,2.99,2.94,3.9-.77,3.5.55,4.06,3.51,2.87-1.22,3.56-1.61,1.94-3.94,2.38-6.01,4.7-2.08-.83-4.6,2.39-1.16,3.6-1.78,1-2.45-.71-5.57,2.07-3.79-2.63ZM737.5,496.89l-.39-2.77.97-3.91,2.28-4.56-2.02,10.65-.66.77-.17-.18ZM735.13,485.8l-.16,1.79-1.4,1.43,1.56-3.23Z"},"YUC":{"type":"polygon","data":"1292.85 608.9 1288.69 602.45 1287.39 597.71 1281.83 594 1279.87 586.14 1277.39 584.17 1277.2 581.05 1274.44 575.36 1271.08 578.84 1270.35 577.8 1267.96 578.08 1266 574.36 1261.41 573.87 1263.57 561.31 1262.67 560.95 1265.33 554.94 1267.1 552.83 1276.56 546.81 1280.61 545.83 1287.88 542.21 1294.42 540.61 1305.3 538.61 1316.92 537.34 1327.9 535.44 1337.02 531.81 1338.22 529.47 1346.31 527.62 1349.49 528.27 1354.1 527.32 1357.78 524.92 1360.03 525.5 1362.3 527.5 1367.8 527.92 1369.76 530.29 1376.71 531.53 1378.21 531.43 1377.49 538.74 1375.52 541.5 1373.76 547.65 1375.03 553.35 1374.74 554.55 1369.34 564.4 1368.55 567.05 1366.73 569.15 1356.92 576.17 1353.69 577.93 1349.79 578.4 1348.02 576.36 1344.68 578.03 1341.61 582.87 1337.2 584.65 1335.3 588.93 1329.81 591.84 1325.65 593.02 1319.2 597.7 1316.52 598.36 1313.85 600.99 1308.25 601.75 1303.71 603.8 1301.28 606.15 1294.08 607.4 1293.22 611.6 1292.85 608.9"},"VER":{"type":"path","data":"M1070.41,730.6l-15.06-1.07.41-1.2-1.63-4.76-3.16-2.66-2.25-3.2-2.67-5.3.34-1.09,4.21-3.39-5.22-3.25-2.74,2.44-5.99,1.63-5.2,3.71-4.52.29-1.89,1.03-1.71-.6-2.1-7.05.15-2.59,1.1-1.01,4.75-9.46-.37-6.45-1.54-2.79-5.57-.58-3.4-1.15-2.81,1.29-1.24-1.41-1.19-3.54-2.95-2.14-1.93.6-2.62-3.29-.21-4.05,1.61-2.91-5.67-5.05-1.39,6.09-1.88,3.35-1.37-2.24-5.06-1.92-4.71,3.47-1.12-.9-.81-5.85-6.01-2.08-1.03-2.36.67-4.55,3.56-4.26.62-2.42.99-10.33,8.61.19.04-6.9-5.21-2.75-5.32-1.4-1.34-1.39.74-1.03-1.16-6.17,1.18-1.29,4.62-8.37.31-3.21,3.67-7.3,5.23-7.57-13.04-5.48-6.15,6.85-.25.04-.77-2.85-3.95-.55-.03-2.88.95-6.38.73-.47,2.58,1.85,4.05-4.95-.28-4.04-4.22-3.65-.23-3.25,1.48-6.18-7.69-.17-3.04,5.42-1.83,1.37-1.52,3.7-3.04-.92-4.5,4.55-2.77,1.31-3.65,3.96-4.22,2.02-1.96,1.81-1.33-3.95,2.16-5.59,1.54-6.27,1.67-2.13,3.33-2.87,2.04,2.04,4.26-.74.02-3.88,1.45-3.43,3.99-4.27-3.44-8.02-4.44-1.6-1.65,1.59-2.64-.87-1.64-2.1.98-3.04-1.37-3.18.94-6.84-2.43-.46-.31-1.48.56-3.54,3.29-.99,4.63-4.86-3.2-3.6.1-2.61,1.95.1,2.08-2.57.28-4.23.98-.65,5.17-.12-1.04-8.26-2.52-2.61-6.02-1.86-3.02.05-.02-.04,1.73-.98,5.87-.38,3.51,2.21,4.64-1.1.72-2.33,2.03-.25.51,1.6,4.46,3.26,1.75.25,4.19,7.45,2.44-1.67-.48,6.66,1.18,7.65-1.24,2.24.64,2.7-.32,5.78,3.23,10.85,2.02-.48-.1,5.44,1.4,1.49.8,7.02,3.16,13.13.84,1.95.67,7.75.98,2.79,5.46,7.31.77,2.13,7.63,11.42,4.15,7.55.65,2.51,3.3,5.08.85,5.43-.11,7.65,1.77,3.65-.71,2.93.4,5.57,4.49,3.4,2.26,3.77-.65,3.06,3.04,2.54,1.95.08.36,6.84,2.23,2.7.03,5.07,5.85.1,1.08-.94,5.45,2.2,14.77.42,6.57,7.04,6.4.79,2.47,6.93,3.14,3.97.3,4.49,2.95,2.29,3.61.76,5.17-.8,7.91-2.12-.49,6.89.51,2.58-.87,6.07,4.01,2.72,1.85,3.77,5.99,2.79,1.37,5.43-.84,3.95.62,5.69.82.26-4.4,3.47-3.43,1.6-1.51,1.74-27.58-1.9Z"},"TLX":{"type":"polygon","data":"938.33 635.58 936.4 630.94 929.01 622.95 926.43 623.52 925.55 623.23 925.16 621.97 932.11 619.46 937.4 619.36 941.6 614.75 944.55 615.48 949.56 615.77 951.92 613.2 957.96 620.24 958.53 624.44 961.8 623.3 963.3 625.09 963.5 627.46 965.13 628.46 964.22 629.71 958.55 630.05 955.51 634.46 953.1 635.58 949.89 633.75 943.81 638.94 943.35 639.02 938.33 635.58"},"TAM":{"type":"polygon","data":"973.21 488.37 970.78 488.02 967.64 485.72 966.69 482.77 960.51 483.52 959.73 486.06 957.83 486.51 954.54 484.45 947.11 484.93 943.96 486.72 939.85 487.12 936.7 484.61 934.89 486.43 928.67 485.92 926.63 486.19 924.69 482.32 924.03 477.79 920.82 473.23 918.38 472.27 915.9 468.22 912.14 472.44 909.64 471.45 904.56 471 898.88 468.8 898.08 467.9 898.55 462.22 900.39 455.49 898.6 452.02 899.05 448.41 898 446.57 898.37 443.92 898.93 443.47 904.5 444.25 905.5 436.83 906.61 433.72 909.51 430.67 911.41 426.02 914.48 424.4 918.22 425.57 923.39 423.23 924.74 420.93 929.04 421.91 928.37 415.26 926.45 413.88 925.54 408.03 923.71 403.49 926.97 394.89 926.58 388.02 923.6 387.29 924.45 385.6 927.63 383.55 932.78 381.27 935.79 377.72 937.96 378.18 940.5 375.17 946.24 374.15 947.62 371.21 950.8 369.86 952.42 365.89 951.28 363.26 955.24 358.98 955.96 360.1 961.79 360.62 965.79 354.97 972.73 353.56 978.73 348.91 981.08 347.75 986.89 340.14 982.51 338.19 981.84 333.89 983.92 329.04 983.52 326.35 985.23 320.55 983.28 314.01 974.6 315.11 971.39 317.2 970.14 316.93 968.31 311.9 963.58 311.16 962.63 303.23 959.44 304.64 957.16 301.44 955.4 297.59 954.92 289.67 951.93 289.26 951.37 286.31 948.55 285.1 951.19 277.87 946.96 273.73 948.48 270.91 951.82 268.37 952.48 261.85 951.17 260.01 952.64 253.34 951.23 252.09 954.37 246.65 948.73 247.12 947.1 246.59 948.19 244.34 952.54 243.07 956.02 239.92 959.42 240.86 961.16 243.48 959.71 246.87 961.38 247.77 958.77 254.28 960.38 257.66 960.57 261.33 958.16 269.17 960.51 271.95 962.95 277.01 964.74 287.54 963.94 291.95 966.14 294.62 964.55 297.44 970.66 299.37 971.29 300.78 976.35 301.39 979.16 302.76 981.01 306.61 985.28 306.4 992.75 311.01 996.22 314.92 1000.56 316.15 1003.52 315.26 1007.56 315.97 1010.81 315.49 1015.2 317.27 1017.25 316.95 1019.47 318.3 1022.43 323.31 1026.54 326.18 1030.66 324.38 1031.92 321.45 1036.43 320.26 1037.29 320.39 1036.99 321.97 1034.04 330.62 1032.6 333.41 1025 344.39 1024.89 344.2 1019.2 341.28 1016.29 346.36 1016.1 348.7 1015.96 348.66 1015.97 345.2 1010.83 345.84 1007.16 353.46 1009.09 356.08 1003.94 365.31 1005.92 367.29 1003.09 372 1003.32 376.23 1001.84 379.46 1002.58 380.87 1000.19 383.84 995.66 385.81 996.19 396.26 998.7 394.04 998.49 395.75 995.74 404.52 992.59 420.42 992.7 426.5 989.26 439.11 986.03 458 984.6 464.03 982.61 468.19 980.17 470.82 976.76 477.7 978.22 479.11 976.57 485.34 977.67 488.79 978.17 493.24 976.56 494.34 973.21 488.37"},"SON":{"type":"path","data":"M576.57,298.46l-3.72-.55-1.44-1.11.4-1.16-1.3-4.8-3.96-5.86-.02-2.47-4.47-3.29-2.62,3.99-3.81.51-2.17-1.17-1.96-3.24-.06-7.01.64-6.12-3.27-3.58-3.31,1.61-.85-.74-7.09-2.04-4.17-5.83.49-4.3-2.92-1.03-.39-2.36.91-3.44-.45-3.53,3.08-2.96-.73-4.39,3.48-6.49-5.78-.61-6.76-3.02-2.54,2.57-.54-2.8-4.98.91-4.57-4.71-1.52-4.31.27-1.59-3.4-6.13-.66-4.05-7.51-3.31-.37-5.82-4.33-5.71,1.99-3.77-4.84-3.5-1.49-4.62-2.08-.69,1.78-5.58.03-6.58-1.19-5.47-4.38.85-.76-.4-.03-.93,2.29-3.19.37-3.07-2.31-4.45-1.35-4.91-1.1-1.03-1.01-5.19.3-3.46-2.52-1.04,1.28-3.06-.28-2.48,1.81-5.64-.17-2.96-1.99-2.9,1.2-4.72-.92-3.71-2.54-3.51-1.55-6.12.17-6.13,4.01-8.16,2.35-3.74.12-6.78-4.5-2.67-5.7-1.82-6.58-1.32-1.25-.71.66-1.47v-6.4s-8.43-6.61-8.43-6.61l-8.01,5.93-3.52-.13-3.49-1.95-1.39-2.4-6.1-4.87-1.89-3.1-3.66-.26-1.02-.57-1.12-2.29h-1.61l-5.64-5.08,2.66-5.17.55-3.17,2.11-3.36-1.08-2.98,3.48-3.38,3.6-5.78,2.86-.1,28.76,12.21,34.59,14.88,24.55,10.51,20.66,9,18.88,8.42,23.99-.11,27.1-.02,37.19-.02.18.37-1.73,1.38,1.09,6.73-.18,3.84-1.95,4.56-2.9,3.14,2.77,3.41-.97,3.93.98,1.24-1.55,2.3.91,3.23-.36,12.35-3.12,5.66,1.13,3.92-3.46,5.11-2.85,9.85,1.69.82-1.51,9.99-1.07,3.95-2.32,3.08-2.02,9.06-2.47,1.41-1.88,4.97-2.48,1.52-.95,5.11-1.94,2.2-.22,4.02-3.04,4.72-1.05,3.63.37,2.88-1.64,2.85,1.93,5.1,1.63.75-3.05,2.57-4.34,1.65-3.43-2.49-3.22,1.74-4.37.86-3.34,3.5,2.22,3.09-2.2,4.84,3.39,2.86,1.75,4.39-.09,2.16-2.48,4.77,4.64,4.34,1.76,12-.55,2.41-3.29,5.36-.66,5.62-2.45,2.37,6.84,4.42,3.66-1.12.64.16-.51,1.24-6.6,6.71-.5,3.77-2.71.81-4.76,6.51-7,1.71-2.28,5.74-2.88.84-6.2,3.9-.45-2.13Z"},"TAB":{"type":"path","data":"M1201.6,727.19l-1.86-4.48-5.38-3.85-2.8-.24-.06-.22,1.63-3.73-1.47-7-3.54-2.12.35-3.16-1.82-3.26,2.59,1.61,6.36-1.77,1.31-6.68,3.16-.16,4.96,1.26,2.15,2.69,9.84,4.58-.28,1.91-3.54,24.95-12.16.23.55-.54ZM1109.13,723.29l-.37-3.4.89-4.15-1.86-7.38-6.31-2.94-1.74-3.54-3.16-2.15.69-4.8-.53-2.68.46-6.44,1.74-1.53,5.25-1.9-.07,1.91,6.92-1.34.78-2.37,6.46-.5,1.28-3.42,6.36-1.56,7.01-.34v3.34s6.06-.37,6.06-.37l1.36-2.68,6.17-.5,5.72-3.23,3.25-4.16,7.55-1.92.73,5.54,6.21,6.46,1.38-.57.52.92-.8,2.64,3.56,10.1,4.99,4.21,1.2,2.94,4.84,1.01.43.27-4.06.19-4.71-1.85-1.69,3.54-4.8-.82-2.53,2.17-.53,4.2-3.17.97-9.82,8.08-3.5,2.23-6.11,5.08-.81-.15-1.65-5.34-4.02-.92.69-2.49-3.02-5.38,2.86-4.43.54-5.38-4.78.51-1.88-2.45-4.81-2.85-5.01,2.14-1.64,6.03-.49,4.16-2.03,4.88-4.89,4.92-.49,2.97-3.93,4.7-.7-.22Z"},"SIN":{"type":"path","data":"M674.67,479.2l-3.44-2.56-2.95,1.83-2.09-5.91-3.95-5.33-2.34-1.85-4.77-8.85-7.46-9.95-.21-3.36-1.41-3.79-3.18-4.42-4.55-8.65-2.1-5.55.09-2.29-3.32-4.91-6.23-7.53-1.6-3.04-4.12-3.86-1.98-.57-3.02-3.7,2.44-.72.28-4.12-3.47-6.2-2.54,3.86-4.12-1.04-1.89-4.05-5.48-2.36-.2-2.61,1.67-3.96.53-12.56-2.35-3.41-2.4.04-2.2-3.84-5.29-4.19-1.36,2.71-.93-1.68-7.62-4.75-1.86-1.78-.52-2.1,2.01-2.89-4.26-3.11-2.78.24,1.12-.96-.03-4.76-5.85,1.69-1.66,2.49-2.42-1.28-3.63-4.7-4.1-2.56,1.52-4.09-.76-2.14.76-2.26,4.35-5.76,3.4-1.11,3.73-5.75.53-1.81,1.46.19,1.07-2.74,1.02.15.89,4.17,9.29-5.86,3.83-1.12,2.25-5.66,6.58-1.61,4.81-6.58,3.56-1.06.62-4.66,6.33-6.43.99-2.43,5.99-.29.21.33-1.4,5.19,3.55-.03.43,2.42-2.77,8.88,1.65,2.87-.28,3.76,2.16,5.59.93,4.6.18,7.68,6.31,1.72,4.83.52,2.59.9,2.31,7.39-.34,5.62,2.18,4.57-.89,2.61-4.08,4.33,1.4,2.44-3.01,4.97-2.11,8.85-1.96,4.27,1.84,1.43,1.83,7.68.02,5.21,5.1-.16.39,4.15,1.89.5.24,7.99,2.01.05-.21,5.85,1.45,6.86,3.72.88,9.35-5.36.98-1.23,4.71,1.62,1.51,1.3,3.92,7.91-.62,3.55.9,8.05.71,1.76-.07,5.08,2.14,5.97,1.93,2.62-.29,4.49.59,4.81-.84,1.81,1.82,4.55.29,8.6,6.33-.77,1.31,1.93-.76.53-2.11,6.1-3.5,3.77-.76,5.11,1.47,1.8.25,6.15-.41.54-3.69-.86ZM598.49,366.62l.04-.2.47,1.08-.52-.88ZM566.84,339.27l2.06-1.15,1.41.29-2.88,1.92-.59-1.07ZM570.95,338.55l.18.04.84-.72.11,2.08-.39.37-.73-1.77Z"},"SLP":{"type":"polygon","data":"928.41 540.94 927.11 535.82 922.85 537.29 917.4 529.48 916.58 525.04 911.23 525.56 908.75 530.33 902.81 530.19 901.82 526.29 898.45 523.45 894.01 527.38 889.9 529.47 884.03 529.22 882.25 525.94 876.52 521.04 869.84 518.43 866.88 520.42 865.26 525.45 863.52 526.16 859.93 526.2 854.1 521.79 851.03 518.12 845.91 515.97 839.08 514.14 837.23 512.8 832.72 512.26 832.46 512.07 836.15 506.14 838.95 499.86 837.92 494.13 838.68 491.86 845.46 480.71 846.5 477.1 843.43 470.97 838.28 472.81 829.8 480.82 824.43 482.06 823.51 481.18 821.85 475.14 816.6 473.48 815.42 471.39 809.85 467.1 809.02 463.69 813.06 454.62 812.47 449.46 813.84 447.26 813.22 445.03 814.23 443.52 818.01 444.61 823.73 443.42 826.85 438.97 835.72 434.98 842.02 427.25 844.85 424.56 852.19 422.23 854.81 419.15 858.16 413.2 856.88 411.01 858.11 407.41 859.93 405.3 865.64 402.88 868.54 397.31 873.81 395.71 879.01 388.91 879.57 390.51 883.53 391.55 883.25 393.61 880.44 396.75 883.04 401.47 882.35 403.91 885.32 409.63 885.86 413.02 884 420.75 885.02 423.25 883.53 428.68 881.21 434.28 881.61 436.68 880.62 443.89 882.7 450.13 886.25 452.23 891.09 447.12 895.61 448.11 896.12 449 895.68 452.54 897.37 455.81 895.75 461.73 895.16 468.86 897.2 471.19 903.91 473.78 908.98 474.24 912.95 475.8 915.47 472.96 916.46 474.56 918.99 475.56 921.32 478.87 921.95 483.18 925 489.27 928.75 488.77 935.97 489.36 936.92 488.41 938.98 490.05 943.52 489.61 944.41 491.6 948.85 491.52 953.74 493.03 955.09 494.44 955.62 498.65 952.77 498.71 949.93 500.58 949.62 505.32 949.01 506.07 945.64 505.9 945.38 512.52 947.61 515.03 945.29 517.45 941.02 518.74 940.11 524.54 940.9 528.38 942.55 528.7 942.09 532.01 940.07 531.98 936.48 535.81 934.17 539.82 932.74 538.82 930.31 541.95 928.41 540.94"},"QROO":{"type":"path","data":"M1297.9,692.47l-4.02.96-.13.12.02-.62,4.39-4.9,1.73-4.37.34-7.18-.38-2.21,1.26-2.9-.08-3.83-1.31-3.43.29-3.38,2.24-7.64.24-4.01,2.58-1.96,2.09-11.18-2.74-6.87-4.24-5.76-4.94-4.61-1.21-2.34,1.73-3.09.7-3.41,6.15-1.07,2.7-2.61,3.71-1.68,6.12-.83,2.79-2.74,2.46-.61,6.5-4.71,3.97-1.13,6.62-3.51,1.83-4.13,4.19-1.69,3.13-4.94.67-.34,1.32,1.51,5.93-.72,3.86-2.1,10.22-7.32,2.43-2.82.88-2.95,5.44-9.91.53-2.21-1.25-5.64,1.43-4.99,2.12-2.98.79-8.08,5.56,1.48,6.99.34,4.21-1.91.99-4.41,1.46.54,3.38,6.46.49,7.78,1.58.56-.46,3.43,1.34,1.2-3.05,4.82-3.03,7.05-6.26,6.74-4.29,5.19-6.96,5.41-3.56,4.55-2.23,4.34-2.78,3.09-3.49,7.56.03,6.82-2.19,5.04-3.19.76-3.27,4.86-3.48.93-2.02,4.63,4.86,6.61,2.59-3.36,5.56-1.48-1.34,3.35-2.41,2.26-1.13-1.1-4.77,3.36-3.62,11,4.56-1.13,3.39-3.76.14-.1-1.72,1.95-1.25,5.88-4.21,7.34-2.87,8.34-1.69,1.76-3.94,13.92-2.25,3.33-1.99-2.01.65-2.19-4.93-2.42,3.15-7.38.32-6.64-2.85-5.9-11.36,18.07-.7.83h-7.41l-2.32,2.06-2.14,5.46-1.99,2.05-1.21,3.69-2,2.4-2.39,4.95-2.43,1.41-1.3,2.64-3.15,2.47-4.74-4.14Z"},"QRO":{"type":"polygon","data":"866.51 592.01 866.72 589.43 863.33 585.31 862.65 582.24 859.79 579.67 858.86 577.06 859.68 572.29 857.89 566.67 858.97 562.67 861.03 558.84 867.87 558.38 870.31 557.2 874.58 557.87 878.47 555.54 880.39 549.88 884.58 544.49 885.78 544.04 888.11 547.29 895.17 543.05 897.52 536.13 894.64 535.51 896.04 533.54 896.21 529.22 898.49 527.2 899.29 527.87 900.6 532.98 910.45 533.2 913.03 528.23 914.26 528.11 914.72 530.6 920.67 539.11 919.09 542.4 912.61 545.17 910.68 543.74 906.21 547.42 906.33 549.73 903.43 555.78 899.83 558.64 896.68 564.8 897.17 567.03 893.95 569.23 884.3 572.76 880.71 584.58 878.94 585.84 875.8 590.19 875.76 593.13 872.88 595.96 869.99 596.34 866.51 592.01"},"PUE":{"type":"polygon","data":"927.41 695.83 925 691.64 918.72 693.29 918.76 692.37 912.71 689.27 913.77 684.94 908.67 685.64 907.56 682.32 904.06 679.37 904.21 678.56 908.14 675.91 910.08 673.54 913.31 670.93 917.2 675.91 919.74 672.86 919.49 660.41 924.15 649.3 926.06 646.11 927.13 637.77 926.5 632.82 927.89 628.44 927.81 626.12 928.04 626.07 933.98 632.5 936.04 637.45 942.71 642.01 945.06 641.6 950.21 637.2 952.96 638.77 957.41 636.71 960.1 632.8 965.72 632.45 969.24 627.65 966.2 625.79 966.05 623.97 962.72 619.98 960.87 620.62 960.65 619.03 951.98 608.93 948.38 612.86 946.22 612.74 946.39 606.06 949.6 600.75 952.38 591.83 952.23 585.96 948.5 586.85 948.44 586.48 953.84 583.94 955.82 581.33 961.36 576.62 962.17 570.95 963.82 566.94 965.5 565.68 968 561.22 970.48 561.28 969.71 564.46 970.06 569.32 974.28 572.96 974.4 574.7 972.74 576.72 970.75 575.29 967.33 577.51 966.15 585.37 966.22 590.92 970.73 591.54 971.67 595.02 975.42 594.46 980.91 588.35 988.87 591.7 985.51 596.56 981.52 604.5 981.21 607.66 977.04 615.21 975.12 617.3 976.32 623.67 974.91 625.64 978.44 629.3 984.22 630.82 987.62 632.61 987.6 634.91 979.24 634.73 978.01 647.46 977.61 649.04 973.95 653.43 973.04 659.56 974.89 663.81 980.43 665.72 981.15 670.97 984.85 673.94 990.07 670.09 992.79 671.12 994.43 673.79 989.81 680.3 986.11 681.16 980.09 685.78 974.62 684.25 970.37 685.83 966.49 690.07 964.84 692.97 964.32 693.03 964.23 691.35 961.62 683.94 960.5 682.49 962.35 681.22 961.46 675.55 954.09 677.78 948.96 686.93 952.63 691.07 950.68 693.31 948.98 693.16 946.38 690.18 942.55 691.26 937.06 691.28 934.05 692.02 930.06 694.69 928.45 696.47 927.41 695.83"},"OAX":{"type":"path","data":"M982.77,802.74l-5.22-2.65-6.28-1.09-5.41-2.82-1.36-2.37-6.16-3.38-5.48-1.2-3.18.24-3.97-1.32-9.55-.35-5.42-4.59-10.79-7.4-7.4-1.55-3.45-1.49,6.71-5.22,1.21-3.65,3.79-2.88,3.71-3.76.54-2.16,3.3-1.46,2.92-3.27,1.52-4.68-.92-4.69-1.91-1.41.22-5.69-4.08-2.25.48-2.24,1.79-1.6.2-9.11-2.58-8.73.35-4.15,3.57-6.71,2.03-2.26,3.29-2.19,2.19-.54,5.54-.02,2.48-.69,2.17,2.48,4.28.39,4.54-5.22-3.99-4.5,3.59-6.4,3.15-.95.11.69-2.85,1.96,2.68,3.46,2.32,6.59.22,4.23,4.94-.49,2.22-3.91,3.2-3.5,2.75-1.02,5.95,1.66,6.66-5.11,4.15-.96,5.82-8.21,3.3-5.88.42-1.82.4.35-.91,1.64.3,5.77,4.4,5.53,2.42-.76,1.06.77,1.08,3.23,3.01,3.42,3.7-1.71,2.63.89,4.41.46.52.93.29,5.05-4.18,8.32-1.56,1.44-.25,4.22,2.65,8.91,4.26,1.5,2.44-1.34,4.7-.3,5.44-3.88,6.05-1.65-.93,2.95,3.29,6.51,2.58,3.67,2.84,2.39,1.06,3.1-1.29,3.77,18.73,1.33,26.65,1.84-.76,3.39-1.41,1.79-2.04,6.18-4.94,4.25-5.44,12.26-.43,2.01,1.29,5.17-1.06,2.41-.31,4.06-2,.97-4-1.84-1.4-3.49-3.7,1.4-2.09,4.4.1.11-5.32-.96.88-.64,3.35-4.87-6.1-2.56-2.5,2.46-3.63-5.6-4.29,1.23-2.45,3.82-1.92-.05-5.54,7.52,1.6-.03-6.98,1.48-3.06,2.86-1.75,3.25-2.21,1.49-6.06,1.56-3.38,1.58-4.1.63-2.32,1.6-6.27,1.81-7.32,3.59-4.49,2.99-6.99-.5-3.24,1.79-1.8-.05ZM1045.68,708.21l.03.02-.6.49.57-.51Z"},"NLE":{"type":"polygon","data":"885.05 448.23 883.52 443.62 884.48 436.63 884.14 434.61 886.21 429.6 888 423.08 886.97 420.53 888.74 413.13 888.05 408.73 885.38 403.6 886.09 401.12 883.89 397.14 885.94 394.86 886.68 389.45 881.75 388.15 881.17 386.49 881.61 386.17 884.65 379.91 884.34 374.68 882.94 372.38 884.37 369.55 887.39 369.67 888.79 363.96 888.48 359.2 891.73 354.48 894.71 353.51 895.93 351.89 897.08 352.02 898.5 354.5 904.28 356.22 908.26 356.28 911.95 351.11 909.16 346.21 905.15 345.42 905.86 344.33 899.96 339.27 899.91 332.11 895.55 331.94 893.67 331 893.19 328.87 893.65 325.16 896.66 319.47 892.79 315.91 892.29 310.65 888.57 306.97 883.64 299.05 884.68 297.36 888.38 294.36 890.99 289.81 893.63 288.19 897.67 288.21 901.6 285.55 907.71 285.38 910.57 281.3 912.57 279.96 915.01 275.66 916.47 266 912.45 262.19 909.43 264.3 907.83 266.99 906.03 265.24 906.75 260.67 908.81 257.81 911.97 254.97 913.42 255.51 917.26 253.87 921.04 254.09 923.33 251.58 923.63 248.51 927.86 243 929.5 239.36 930.82 238.66 936.17 238.27 944.67 239.86 950.29 237.31 952.23 235.57 953.33 236.36 953.97 237.95 951.12 240.54 946.19 241.97 943.13 248.29 948.39 249.99 949.21 249.92 947.62 252.68 949.51 254.35 948.13 260.63 949.55 262.62 949.12 266.86 946.27 269.02 943.46 274.27 947.9 278.61 944.97 286.66 948.87 288.32 949.53 291.8 952.23 292.16 952.6 298.29 954.69 302.87 958.48 308.16 960.27 307.37 961.02 313.63 966.22 314.44 968.02 319.38 971.96 320.21 975.6 317.84 981.25 317.12 982.27 320.55 980.63 326.15 981 328.66 978.92 333.52 979.95 340.15 982.46 341.27 979.23 345.5 977.22 346.49 971.52 350.91 964.12 352.42 960.41 357.65 957.6 357.4 955.66 354.37 947.94 362.69 949.35 365.93 948.62 367.71 945.52 369.03 944.3 371.61 938.99 372.56 936.88 375.06 934.72 374.6 931.04 378.94 926.29 381.04 922.26 383.64 919.48 389.2 923.87 390.28 924.11 394.45 920.66 403.52 922.79 408.79 923.83 415.5 925.68 416.82 925.83 418.27 923.35 417.71 921.4 421.01 918.04 422.54 914.2 421.34 909.17 424 907.08 429.1 904.14 432.2 902.74 436.16 902.07 441.05 898.12 440.49 895.71 442.41 895.33 445.14 890.13 444 885.75 448.64 885.05 448.23"},"NAY":{"type":"polygon","data":"667.48 561.96 665.59 563.46 664.27 562.2 665.76 559.54 671.8 553.77 673.88 552.87 676.61 549.49 678.14 543.61 678.27 537 681.45 532.11 680.17 526.29 677.82 527.1 673.72 523.81 672.65 521.75 671.5 516.46 668.51 507.66 668.27 503.39 668.97 500.51 670.17 501.78 674.61 504.48 676.48 499.43 671.65 493.66 671.32 492.52 672.43 484.32 672.51 481.13 673.45 481.83 679.52 483.25 681.64 480.42 681.31 472.31 680.04 470.75 680.49 467.75 683.8 464.18 685.73 458.6 687.98 462.64 692.11 461.72 693.82 460.32 695.09 462.48 699.41 463.44 699.92 468.01 701.81 468.45 701.11 470.22 695.72 473.7 694.46 476.47 695.93 483.09 699.22 485.86 703.35 480.48 704.2 482.12 706.87 482.9 709.49 486.42 709.81 489 714.3 493.62 716.94 490.11 719.39 489.01 719.04 491.82 720.5 494.44 720.53 494.64 716.99 503.08 716.61 510.69 720.65 509.38 723.28 511.4 722.78 513.84 723.71 519.74 730.46 520.44 731 521.41 731.89 527.65 733.6 529.72 733.53 531.62 731.65 538.71 731.05 539.68 727.61 541.63 724.63 542.17 722.82 543.85 714.23 545.03 712.16 552.35 709.11 560.41 706.54 562.06 706.69 564.67 705.54 563.12 704.07 562.18 700.68 556.67 696.06 555.29 694.57 552.7 689.14 551.52 683.32 555.82 679.91 555.04 676.29 556.79 672.67 561.53 669.45 564.98 667.48 561.96"},"MEX":{"type":"polygon","data":"900.67 672.22 892.2 670.99 889.75 666.28 886.42 665.41 886.82 663.52 890.29 658.67 896.16 649.23 899.07 645.28 899.83 645.13 901.61 647.53 905.34 645.32 906.35 646.51 911.59 645.26 913.69 649.06 918.72 651.28 921.03 649.42 916.65 659.87 916.86 670.87 913.77 666.91 908.08 671.52 906.21 673.79 903.26 675.78 900.67 672.22"},"MIC":{"type":"polygon","data":"767.8 694.18 761.47 691.93 749.46 688.85 741.9 684.53 737 683.6 732.1 681.74 723.7 677.54 722.81 675.57 721.49 669.45 718 665.9 718.69 664.63 716.72 661.22 717.72 659.27 720.61 657.82 721.95 654.21 722.94 654.58 727.77 650.33 732.86 650.15 736.18 647.63 739.12 650.95 743.08 646.88 746.87 644.75 754.27 638.37 756.02 637.43 760.11 638.65 762.53 633.67 765.68 630.8 767.88 627.32 766.46 622.9 762.15 623.01 763.3 619.96 761.57 612.77 764.03 610 762.5 603.45 756.86 601.5 753.17 600.8 753.98 599.65 754.65 595.71 756.59 594.27 759.11 594.8 760.72 597.72 769.16 593.69 769.69 591.37 772.34 589.52 773.96 589.66 779.61 586.1 787.07 585.81 790.75 583.97 794.63 583.96 796.1 584.48 796.38 590.99 799.33 592.53 805.67 591.79 807.66 592.56 812.08 587.11 814.96 586.11 816.73 586.26 817.09 589.05 816.29 598.81 825.51 602.18 827.77 599.13 830.26 599.28 832.73 598.56 833.58 602.55 840.41 604.72 847.19 604.95 849.25 603.1 859.19 600.61 862.27 597.77 861.66 595.04 862.83 592.59 862.51 588.77 863.8 590.34 863.59 592.91 867.87 598.23 867.08 602.31 867.94 604.45 865.73 607.02 864.2 611.29 859.08 613.72 860.51 618.63 860.45 624.59 859.66 626.76 857.67 628.05 856.02 633.33 853.72 637.39 849.37 643.09 845.28 645.65 843.51 649.24 839.43 652.83 838.53 653.92 838.14 651.62 832 657.11 832.84 665.31 832.45 671.23 835.53 676.99 834.61 677.73 827.66 671.68 825.55 673.31 823.6 669.4 819.69 669.37 811.89 667.36 807.8 669.11 802.68 669.88 800.8 668.8 799.65 665.32 796.23 664.84 791.47 666.93 789.47 665.6 785.69 670.25 785.03 675.1 785.67 677.55 784.98 680.42 780.84 682.72 779.68 682.31 774.44 684.06 772.1 686.71 771.2 694.92 771.77 695.68 771.25 696.27 767.8 694.18"},"MEX-2":{"type":"polygon","data":"850.77 671.43 847.04 670.53 848.79 668.72 849.41 663.02 846.98 662.23 846.89 660.59 849.09 653.45 851.39 649.87 851.72 644.68 856.09 638.96 858.63 634.47 860.07 629.88 861.99 628.63 863.28 625.11 863.35 618.24 862.48 615.24 866.47 613.35 868.22 608.47 871.21 604.99 870.02 602.03 870.58 599.12 874.19 598.65 878.58 594.33 878.62 591.13 880.96 587.88 881.49 587.5 882.33 588.94 887.76 592.36 893.26 593.09 895.19 598.56 893.61 600.55 895.64 603.42 898.7 617.49 901.35 609.39 904 610.94 906.92 607.13 907.7 602.82 908.57 601.73 913.78 600.5 917.87 598.8 917.91 599.03 915.23 605.84 911.17 608.21 914.54 616.64 919.15 610.51 926.25 609.69 926.18 610.76 922.08 618.18 921.97 621.29 923.29 625.46 924.97 626.02 925.04 628.04 923.61 632.56 924.27 637.77 923.39 644.62 921.6 645.31 918.28 647.99 915.71 646.85 913.83 643.44 914.88 639.29 914.47 634.91 910.9 630.5 909.41 624.85 906.39 619.68 901.43 625.22 900.05 628.62 895.3 632.24 893.77 636.17 896.66 643.78 893.81 647.63 887.93 657.1 884.65 661.69 882.91 662.11 879.87 660.88 873.85 662.97 869.48 666.91 864.14 667.29 859.07 668.96 859.76 671.31 857 671.95 853.01 676 852.34 676.12 850.77 671.43"},"JAL":{"type":"path","data":"M729.14,645.31l-.78-2.48,1.11-2.04,1.43-8.08-2.22-5.13.73-7.84-2.87-.7-5.11,4.7-5.1,2.72-6.08-.4-3.34,1.41-3.71,2.93-3.57-.15-2.56,1.01-4.77-.15-2.43,2.39-2.69-.69-2.47,3.05-2.65.21-2.51-1.25-.37-3.45-4.28.76-2.22-1.48-2.1-2.58-.95-8.11-6.14-5.91-2.22-5.72-4.57-9.41-.97-3.71.88-6.39-3.4-4.58-.59-3.04,2.78-2.2,3.17-.88,8.83-1.1,3.28-2.35,2.08-3.79-1.78-3.38,3.86-4.13,3.29-4.32,2.12-1.02,3.71.85,5.84-4.31,2.95.64,1.43,2.47,4.66,1.4,3.16,5.14,1.59,1.01,6.48,8.73-.59-10.41,1.97-1.26,3.42-9.05,1.6-5.65,7.64-1.04,1.86-1.73,2.64-.47,4.49-2.55,1.2-1.94,2.07-7.8.12-3.29-1.89-2.29-.85-5.96-1.5-2.72-6.05-.63-.51-3.25.75-3.66-5.22-4.02-1.54.5.15-3,3.65-8.72-.08-.53,1.28-1.28,3.14-.51,1.01-4.48,2.5-.97-3.19,6.58,6.71-2.19-.58,2.36.59,4.2,2.95,3.15,3.21-3.75,2.32-12.22.53-.45,4.63-.95,2.79,2.32-.12,4.28-8.11,10.96.75,3.7,4.81.04,1.09-1.12,2.91,1.26,4.2-4.44,5.28-3.98-1.71-3.24.46-1.15,2.32-.93,1.56.14-.7,4.94,3.93.29.09.26-2.87,6.62-1.57,2.55-9,4.41-3.43,3.12-5.69,3.91-1.64,7.65-2.62,2.74-3.79,1.01.85,6.8,3.75.12.25.23-.66,1.52-8.14,3.53-.71,3.44,4.33,1.26,1.64,4.59,5.49.58,4.41,3.06,6.08-2.26,2.69.78,3.79-2.13,1.15-3.54,2.41-1.26,2.39.95,7.16-5.59,4.21-2.54,2.25-2.71,2.02-5.91-4.17-3.41-.33-2.45.66-3.01,2.64-1.44,5.57.57,2.09,2.24,3.67,2.12,2.68-.15,6.95-2.94,5.19-6.26,8.58-4.01-2.99-4.66.3-1.73,3.58,1.07,2.65,1.77,3.5,4.15,2.56,1.51-.9,2.34-2.33,2.4-4.42,11.57.57,4.68-1.43,1.93-1.67-.27-4.83,8.23-4.55,3.38-3.13,5.6-9.93,10.65,4.07,3.21,1.29,4.03-3.63,5.69-1.19,4.09-3.73.02-3.73,1.86-7.61.29-5.48,3.46-1.7-.14-4.37,3.06-.47,2.05-4.79,2.29-.95-1.72-5.05-1.06-3.87,2.88-.76,4.43-2.94,4.23,7.78,1.48,3.97,1.37.83,3.59-2.46,2.78,1.87,7.78-2.35,6.18,6.42-.16.37,1.13-1.29,2.03-3.27,2.99-1.6,3.3-2.92-.87-3.05,1.65-7.42,6.4-3.9,2.19-2.11,2.17-2.67-3-4.69,3.57-3.01.11.29-2.15ZM736.57,479.06l.18-.56,3.32-2.25,2.22-.56,1.97.5.04.73-1.53,1.09-4.62,5.71-.39.77-1.18-5.45Z"},"HGO":{"type":"polygon","data":"924.89 618.96 928.96 611.59 929.33 606.48 917.61 607.84 915.3 610.91 914.71 609.42 917.51 607.79 920.82 599.36 920.13 594.8 912.9 597.79 906.97 599.2 905.04 601.61 904.25 605.95 903.27 607.23 899.74 605.18 899.25 606.69 898.28 602.25 897.15 600.65 898.38 599.09 895.35 590.5 888.74 589.63 884.43 586.91 883.46 585.27 886.6 574.93 895.26 571.77 900.35 568.29 899.67 565.18 902.07 560.47 905.7 557.59 909.2 550.31 909.12 548.7 910.77 547.33 912.23 548.41 921.18 544.58 923.33 540.13 925.12 539.51 925.97 542.85 931.09 545.58 933.32 542.69 935.08 543.93 938.77 537.51 941.28 534.83 942.39 534.85 943.13 536.57 942.01 540.03 945.11 544 950.19 545.67 951.8 544.12 953.43 544.71 955.65 549.89 952.58 553.17 950.71 557.58 950.7 559.66 950.23 559.74 947.37 556.87 941.83 561.65 939.61 564.47 937.97 571.16 935.5 577.54 938.55 586.61 943.42 582.13 947.74 580.05 951.38 576.1 954.1 574.81 957.75 571.13 959.22 571.57 958.71 575.16 953.74 579.38 952 581.67 945.28 584.83 946.22 590.32 949.48 589.53 949.53 591.44 947 599.58 943.58 605.24 943.39 612.28 940.64 611.6 936.12 616.55 931.58 616.63 924.88 619.05 924.89 618.96"},"GRO":{"type":"polygon","data":"899.67 760.47 893.74 761.54 883.6 757.52 872.79 754.62 866.57 754.55 861.55 751.89 858.96 749.15 856.24 748.11 854.91 745.02 837.75 737.31 827.34 733.35 813.77 727.19 813.53 725.33 808.57 719.87 800.2 715.59 800.61 714.51 797.44 710.4 795.14 710.22 792.98 708.76 792.28 705.46 789.58 703 787.99 698.68 781.97 694.5 778.04 693.05 774.16 694.14 774.14 694.12 774.82 687.91 776.06 686.51 779.66 685.31 781.1 685.81 787.44 682.3 788.59 677.52 787.92 674.92 788.39 671.42 790.05 669.38 791.2 670.14 796.63 667.76 797.51 667.88 798.44 670.72 802.12 672.83 808.59 671.86 812.12 670.35 819.33 672.2 821.84 672.22 824.56 677.67 827.55 675.35 834.54 681.43 839.13 677.72 835.33 670.61 835.69 665.26 834.97 658.26 836.19 657.16 836.75 660.5 841.47 654.81 845.8 650.99 847.46 647.63 848.75 646.82 848.61 648.95 846.5 652.24 844.03 660.25 844.26 664.33 846.34 665 846.08 667.45 841.57 672.13 848.58 673.82 850.44 679.36 854.4 678.62 858.45 674.53 863.32 673.4 862.56 670.79 864.7 670.1 870.65 669.66 875.32 665.46 879.79 663.91 882.7 665.08 883.64 664.85 883.07 667.48 887.82 668.7 890.36 673.58 899.08 674.85 901.42 678.06 900.98 680.48 905.12 683.98 906.73 688.76 910.02 688.31 909.42 690.76 915.85 694.07 915.72 697.01 923.62 694.94 925.32 697.88 926.84 698.81 923.55 705 923.1 710.26 925.71 719.07 925.55 726.51 923.99 727.91 922.87 733.11 927.26 735.54 927.05 740.98 929.29 742.63 929.85 745.52 928.75 748.93 926.63 751.29 922.62 753.06 921.93 755.81 918.91 758.88 914.58 762.17 913.36 765.84 906.66 771.06 899.67 760.47"},"GTO":{"type":"polygon","data":"840.9 601.9 836.01 600.34 834.86 594.99 829.94 596.42 826.4 596.21 824.49 598.79 819.29 596.89 819.94 588.99 819.25 583.63 814.6 583.24 810.38 584.7 806.76 589.17 806.04 588.89 799.86 589.61 799.14 589.24 798.85 582.45 796.61 581.65 797.61 578.21 801.73 571.75 799.77 565.62 797.44 563.79 805.5 555.14 808.51 549.77 813.03 546.41 817.18 539.35 818.64 539.58 821.77 535.36 821.15 530.26 825.1 519.89 827.43 517.5 828.69 514.23 830.22 513.95 831.65 514.98 836.16 515.53 837.84 516.75 844.99 518.65 849.3 520.47 852.13 523.85 858.99 529.04 864.1 528.99 867.56 527.57 869.28 522.22 870.19 521.61 875.04 523.51 880.01 527.76 882.3 531.99 890.53 532.33 893.31 530.92 893.25 532.58 889.83 537.36 893.81 538.23 892.82 541.15 888.89 543.51 886.81 540.62 882.83 542.12 877.86 548.52 876.12 553.64 874 554.91 869.87 554.26 867.13 555.59 859.27 556.12 856.32 561.62 854.93 566.73 856.77 572.49 855.94 577.32 857.36 581.3 860.08 583.74 860.52 585.75 859.56 587.6 859.94 592.06 858.67 594.7 859.15 596.79 857.8 598.04 847.87 600.52 846.14 602.08 840.9 601.9"},"AGS":{"type":"polygon","data":"791.01 520.47 788.49 517.75 780.98 516.99 778.08 518.58 776.18 516.05 776.34 514.77 779.03 510.1 784.7 503.65 788.18 496.64 792.65 494.87 799.02 491.28 801.94 488.57 802.12 489.14 805.9 493.59 809.77 496.16 809.75 498.12 811.03 503.31 810.32 507.41 812.16 510.27 805.94 513.18 800.78 519.4 794.92 521.88 793.58 521.95 791.01 520.47"},"DUR":{"type":"polygon","data":"712.51 487.71 712.22 485.32 708.58 480.45 706.15 479.74 703.81 475.22 698.78 481.78 698.49 481.54 697.43 476.78 697.96 475.63 703.41 472.1 705.66 466.44 702.51 465.7 702 461.11 696.91 459.98 694.59 456.03 690.84 459.1 689.43 459.41 687.35 455.68 684.25 451.11 679.28 451.71 679.07 445.7 677.52 441.82 678.18 440.39 677.53 435.04 677.86 429.78 675.56 426.66 673.73 421.56 673.8 416.43 673.03 414.5 672.22 407.24 672.93 403.18 668.35 393.92 666 391.89 658.87 389.45 656.99 391.81 649.08 396.35 648.21 396.14 647.2 391.38 647.5 383.01 645.31 382.96 645.09 375.54 643.06 375 642.6 370.17 637.76 370.33 637.75 367.7 635.62 358.74 634.77 358.07 635.9 355.59 637.98 346.9 641.62 340.88 640.44 338.81 643.49 335.57 644.59 332.37 647.39 330.91 648.48 333.5 654.86 335.24 657.78 338.34 660.63 334.82 667.2 330.18 671.76 324.91 672.11 319.86 671.33 317.56 675.27 311.26 677.01 307.35 679.5 305.01 684.01 302.45 686.42 298.47 686.32 295.11 687.31 291.67 691.59 282.66 694.62 281.69 695.3 279.95 697.96 280.41 701.33 282.47 702.65 286.41 705.91 289.01 707.58 288.85 711.75 292.96 714.18 292.92 714.95 295.89 717.82 295.33 720.97 297.16 728.94 294.01 735.94 293.61 737.95 296.41 742.53 299.37 745.95 297.64 749.21 298.08 751.16 293.26 754.93 288.52 757.47 287.62 762.41 282.09 763.35 280.34 769.29 283.93 779.87 281.92 783.23 283.19 788.01 285.38 792.64 292.4 793.21 298.54 791.12 305.93 792.25 312.66 790.29 319.87 790.78 325.99 787.7 332.09 782.42 337.47 782.82 341.54 783.97 342.59 782.61 342.88 779.24 345.86 779.02 352.26 781.06 355.97 781.39 359.15 784.41 362.38 784.13 367.58 786.82 371.8 792.2 374.87 796.39 375.13 799.68 377.86 802.99 375.53 802.82 372.17 805.31 367.45 808.12 365.68 808.06 366.48 809.62 370.01 812.22 372.4 809.06 381.18 811.18 382.13 811.32 387.79 810.15 390.19 801.37 391.09 798.26 390.6 796.9 392.01 790.37 389.29 786.51 390.67 783.51 389.56 775.6 389.38 771.81 394.15 767.42 397.28 763.11 402.22 759.1 405.66 754.3 407.15 754.54 414.09 753.45 419.9 752.26 422.09 752.17 429.18 747.35 433.04 742.36 438.4 741.51 441.94 737.59 451.7 733.33 457.18 732.66 459.91 732.94 465.37 732.4 468.77 730.46 475.16 726.13 476.83 722.8 480.54 720.09 485.59 715.12 487.82 714.03 489.27 712.51 487.71"},"CDMX":{"type":"polygon","data":"901.05 642 899.16 642.37 896.81 636.18 897.65 634.01 902.38 630.4 903.87 626.75 905.91 624.47 906.77 625.95 908.32 631.8 911.72 636.03 912.01 639.07 911.15 642.45 907.38 643.35 905.95 641.67 902.37 643.79 901.05 642"},"COL":{"type":"polygon","data":"714.67 658.23 708.46 652.35 700.82 647.25 696.64 645.36 697.35 642.92 694.07 639.85 690.43 640.43 686.36 638.31 688.23 636 690.71 636.63 693.42 633.97 697.56 634.1 700.1 633.1 704.13 633.27 708.36 629.92 710.73 628.92 716.94 629.34 723.08 626.06 726.24 623.16 725.79 628.04 727.96 633.05 726.76 639.84 725.29 642.53 726.24 645.55 725.88 648.22 722.34 651.33 720.28 650.57 718.34 655.78 715.62 657.15 714.9 658.55 714.67 658.23"},"COA":{"type":"polygon","data":"871 384.44 869.69 382.69 867.96 376.06 865.64 374.09 860.44 373.35 856.09 374.39 854.55 375.7 851.91 375.36 852.41 369.56 847.6 369.74 845.62 365.15 842.8 361.9 839.12 360.2 835.55 357.08 820.29 355.98 809.2 359.03 808.5 362.08 803.16 365.46 799.95 371.54 800.08 374.11 799.82 374.29 797.49 372.36 793.04 372.08 788.83 369.68 787.01 366.83 787.3 361.33 784.11 357.91 783.82 355.11 781.88 351.57 782.03 347.17 783.92 345.5 789.99 344.24 785.53 340.18 785.37 338.51 790.04 333.77 793.67 326.56 793.15 320.14 795.15 312.8 794.02 306.09 796.08 298.8 795.39 291.44 789.93 283.14 784.9 280.84 784.02 278.01 781.91 275.91 782.08 272.59 788.72 269.78 790.69 265.69 787.36 263.03 788.78 255.67 789.18 249.53 790.88 243.5 789.13 242.55 789.57 236.44 791.97 234.29 791.17 231.5 792.8 228.76 792.41 227.21 794.82 226.72 797.03 221.22 807.38 206.45 806.63 204.14 812.98 196.38 817.87 193.95 822.01 187.59 824.34 187.55 827.56 183.38 825.09 181.04 828.88 176.06 832.85 177.81 839.21 177.65 842.19 172.41 843.44 172.23 846.16 168.35 849.32 167.67 852.15 164.57 853.07 159.72 856.39 157.2 856.36 155.01 861.9 146.26 864.69 142.64 872.61 140.31 875.73 140.89 880.39 135.67 884.03 136.91 885.1 138.9 889.1 139.85 891.83 138.84 896.17 139.36 898.34 138.76 904.28 141.27 909.22 141.03 911.67 140.04 913.29 143.18 916.94 146.45 915.44 152.2 918.98 152.57 919.38 154.16 922.6 154.96 923.49 158.8 927.85 161.97 930.28 164.57 931.39 169.55 933.29 172.14 932.35 178.17 935.24 184.93 935 191.89 937.86 195.26 936.99 196.85 938.74 201.5 937.85 203.77 939.27 207.86 938.74 209.82 941.5 214.53 945.78 216.78 947.26 219.97 947.99 223.72 949.97 227.26 949.57 232.62 950.24 233.55 948.72 234.91 944.31 236.91 936.33 235.41 930.01 235.88 927.32 237.32 925.42 241.53 920.89 247.42 920.6 250.37 919.86 251.18 916.76 251 913.35 252.46 911.36 251.72 906.69 255.9 904.05 259.56 903 266.25 908.42 271.53 911.56 266.28 912.18 265.84 913.44 267.04 912.28 274.72 910.43 277.98 908.55 279.24 906.21 282.59 900.7 282.74 896.81 285.37 892.83 285.35 888.89 287.78 886.19 292.49 882.52 295.46 880.3 299.06 886.34 308.75 889.57 311.94 890.06 317.26 893.13 320.08 890.9 324.29 890.32 329.01 891.19 332.94 894.83 334.75 897.09 334.84 897.14 340.58 902.13 344.87 900.48 347.38 907.34 348.74 908.59 350.94 906.81 353.43 904.71 353.39 900.4 352.11 898.82 349.35 894.63 348.9 892.98 351.09 889.94 352.08 885.58 358.4 885.93 363.71 885.19 366.75 882.66 366.64 879.71 372.51 881.55 375.55 881.78 379.34 879.72 383.58 877.1 382.92 873 385.37 871 384.44"},"CHH":{"type":"polygon","data":"656.38 332.72 650.55 331.13 648.81 326.97 644.08 329.44 642.6 326.33 642.93 320.92 640.03 311.67 635.78 310.2 630.85 309.67 626.8 308.57 626.66 302.75 625.63 297.68 623.61 292.46 623.91 288.47 622.44 285.91 625.04 277.56 624.08 272.09 621.87 272.11 622.62 269.32 620.86 266.55 612.53 266.95 609.75 266.23 606.6 267.21 603.87 265.44 604.48 264.84 605.19 258.84 608.4 253.61 609.16 250.23 607.18 236.73 603.39 233.18 605.17 229.76 605.31 226.36 603.07 220.75 600.78 218.82 602.78 214.44 600.97 211.93 602.06 210.78 605.98 210.01 608 208.91 611.23 211.25 617.46 208.89 624.3 203.12 619.66 201 618.61 198.24 620.06 195.72 619.64 192.48 620.41 189.82 623.63 184.82 623.84 181.04 625.64 178.99 626.5 174.35 628.73 172.99 630.59 168.06 633.26 166.54 635.42 156.86 637.7 153.83 638.96 149.2 640.8 136.98 639.38 136.3 641.44 129.18 645.39 123.34 644.22 119.27 647.1 114.04 647.49 100.58 646.82 98.19 648.8 95.26 647.4 93.49 648.38 89.53 646.26 86.93 647.83 85.23 650.18 79.76 650.39 75.11 649.52 69.72 651.71 67.96 651.15 66.78 671.74 66.72 677.85 45.47 705.51 45.49 740.76 45.47 741.74 47.07 745.34 47.71 746.64 51.68 746.72 54.89 748.19 59.06 753.22 63.65 755.63 63.91 756.85 66.32 759.12 68.19 761.31 73.89 766.72 78 767.36 82.3 771.61 86.49 772.09 88.03 777.39 92.23 778.68 91.88 782.42 96.47 784.48 96.99 784.81 99.82 787.23 102.17 787.42 104.92 786.48 110.23 790.39 117.36 790.41 119.41 788.35 127.13 787.36 133.25 788.84 135.01 790.21 141.11 789.99 144.42 796.69 152.21 799.41 152.44 800.47 153.62 801.21 157.66 808.23 162.78 812.8 163.47 814.83 164.68 816.27 167.91 819.43 169.44 822.73 169.4 826.63 174.33 821.29 181.35 823.75 183.67 822.93 184.74 820.46 184.79 815.92 191.75 811.17 194.11 803.46 203.54 804.25 205.98 794.52 219.86 792.76 224.25 788.94 225.03 789.76 228.31 788.1 231.1 788.76 233.37 786.83 235.1 786.17 244.17 787.54 244.91 786.37 249.04 785.96 255.31 784.25 264.18 787.15 266.5 786.63 267.59 779.35 270.67 779.02 277.02 781.5 279.51 780.13 278.99 769.83 280.94 762.27 276.37 760.08 280.46 755.84 285.19 753.22 286.11 748.69 291.81 747.41 294.98 745.46 294.72 742.71 296.1 739.94 294.32 737.34 290.69 728.32 291.2 721.2 294.02 718.32 292.34 717.02 292.6 716.36 290.05 712.89 290.11 708.63 285.91 706.78 286.08 705.07 284.71 703.7 280.58 698.97 277.71 693.5 276.76 692.47 279.4 689.55 280.34 684.65 290.66 683.47 294.75 683.56 297.72 681.97 300.35 677.81 302.72 674.65 305.67 672.76 309.92 668.21 317.2 669.24 320.24 669 323.77 665.28 328.06 658.67 332.73 657.62 334.03 656.38 332.72"},"CHP":{"type":"polygon","data":"1144.67 848.7 1129.46 827.61 1122.39 818.27 1112.49 806.44 1104.67 798.58 1099.15 793.57 1092.91 789.07 1094.35 787.9 1092.27 782.94 1085.24 781.14 1084.53 777.61 1084.85 773.42 1086.11 770.57 1084.75 765.1 1084.98 764.02 1090.04 752.61 1095.09 748.26 1097.22 741.81 1098.72 739.91 1099.9 734.63 1101.24 733.08 1104.43 731.6 1111.3 726.17 1116.43 720.04 1116.9 717.2 1121.54 712.53 1123.94 706.77 1124.45 702.42 1125.67 697.91 1128.1 696.88 1131.21 698.71 1133.73 701.99 1136.62 701.68 1136.49 702.9 1133.07 708.2 1136.36 714.05 1135.19 718.27 1140.5 719.49 1142.18 724.91 1145.97 725.62 1152.98 719.8 1156.47 717.58 1165.99 709.75 1170.37 708.4 1170.99 703.46 1171.68 702.87 1177.28 703.82 1178.75 700.73 1181.56 701.84 1184.83 701.68 1185.55 702.97 1185.1 707.04 1189.13 709.46 1190.16 714.37 1188.49 718.19 1189.35 721.28 1193.34 721.62 1197.43 724.55 1198.25 726.53 1195.8 728.97 1198.61 734.01 1202.8 737.23 1204.52 740.82 1208.6 747.17 1213.69 749.35 1216.69 752.11 1221.32 755.08 1222.74 758.36 1222.58 764.5 1225.74 767.6 1228.35 767.65 1228.73 769.76 1231.34 769.76 1231.5 771.78 1228.45 778.08 1228.21 783.39 1204.85 783.31 1177.45 782.88 1159.63 811.55 1152.52 822.6 1157.68 831.72 1156.41 833.64 1153.99 835.01 1153.68 839.88 1151.64 842.49 1152.27 850.49 1150.26 854.83 1150.05 855 1144.67 848.7"},"CAM":{"type":"polygon","data":"1268.16 701.37 1240.62 701.21 1219.79 701.34 1220.13 698.97 1208.98 693.78 1206.65 690.87 1200.35 689.27 1194.55 689.56 1193.16 696.7 1189.68 697.67 1186.73 695.84 1182.88 695.04 1181.99 692.84 1177.05 688.68 1174.05 680.19 1174.93 677.28 1172.6 673.11 1170.68 673.9 1166.45 669.5 1165.8 664.56 1167.4 664.16 1182.67 662.59 1184.18 662.73 1184.41 663.28 1181.81 667.76 1187.27 671.58 1198.16 674.72 1201.38 674.4 1203.25 671.73 1210.9 668.92 1213.11 663.23 1215.47 659.71 1212.54 654.46 1210.8 655.83 1209.98 654.59 1209.91 653.06 1221.04 646.86 1223.12 644.94 1229.54 640.68 1236.55 634.72 1239.85 630.43 1241.43 624.62 1241.66 620.89 1243.28 617.46 1242.74 615.41 1244.64 612.29 1251.47 607.21 1254.81 602.11 1253.93 597.1 1254.7 594.88 1256.35 582.52 1256.54 576.72 1258.85 572 1258.1 576.37 1264.2 577.02 1266.36 581.12 1269 580.81 1270.74 583.28 1273.66 580.25 1274.41 581.79 1274.64 585.6 1277.35 587.76 1279.34 595.74 1284.94 599.48 1286.07 603.62 1290.13 609.91 1291.06 616.78 1292.96 620.44 1298.06 625.2 1301.93 630.45 1304.23 636.23 1302.49 645.52 1299.74 647.61 1299.44 652.6 1297.22 660.2 1296.85 664.5 1298.22 668.08 1298.27 670.8 1296.92 673.9 1297.39 676.64 1297.08 683.05 1295.71 686.51 1290.98 691.79 1290.79 696.66 1290.15 701.37 1268.16 701.37"},"BCS":{"type":"path","data":"M504.76,463.2l-2.41-2.73-.75-4.3.28-12.46-3.26-10.69-2.95-3.8-5.69-3.19-3.4-3.42-5.39-9.01-6.46-8.52-6.82-5.83-7.51-5.39-1.12-2.76-2.8-1.19-.6-7.95-3.65,2.58-2.12-.19-.74-3.94-2.97-4.94-3.88-.55-2.28-1.37-1.77-2.42,1.33-1.94,3.19-6.87-1.04-1.54.74-2.38,4.51-6.76,1.62-9.48,1.35-1.76,1.61-6.82-1.2-16.36-1.23-2.71-2.34-1.62-.17-4.47-2.41-4.51-3.99.72-6.33-5.46-10.52-11.09.44-2.29-3.09-6.5,3.67-3.99-2.93-8.17-3.03,8.42-1.96.4-1.72,3.33-.52-.53-6.12-2.26-5.26,5.51-.69-.42-.54-2.62-2.27-.67-.87-5.82-2.85-2.84-4.17-1.24-1.1.69-1.79-4.39-3.58-2.78-5.69-.88-3.94-2.6,1.3-5.14-.08-3.36-3.37-3.84-4.28-1.86-.76-3.59-4.12-3.11-1.31-2.45-1.97-.36-.21-2.31,3.97-.59,6.87,1.37,4.43,1.59,4.28.03,6.19-2.94-.5,1.09.92,3.1,3.86,2.79,3.34,4.28,3.56-3.74.81.44,1.43,6.29,5.68-3.55-2.05-3.2,1.49-2.59.97-5.32-3.67-4.25-3.74,4.87-.15,1.43-3.8,1.41-.79-.81.72-2.3,2.72-3.05.16-2.4,49.24.16,1.04,2.31,1.01,5.95,3.34,5.55,6.04,2.78,2.17,2.78-.5,6.16,1.88,3.21.43,2.86-1.31,1.73,4.18,4.67,3.96,1.42-1.54,1.66-1.33,3.44,1.89,4.81,2.03,2.43-.04,1.3-3.22,3.86,2.31,1.85,1.72,5.89,2.39,2.44,5.01-3.92-4.33-6.76.39-6.1,1.17,1.21,2.77,4.76,2.28,1.89-1.82,6.13,4.1,2.33-1.85,4.32,2.07,3.82-.96,3.61.97,8.6-2.76,5.05-.07,9.78,2.88,3.36-.26,3.91,2.4,5.14,2.93.39-.51,1.41.66,6.06.93,1.36-.3,7.71,4.37,8.73,1.72,6.73-2.29,4.53-2.71,3.74-.87,5.94,1.11,2.37-.88,4.89,1.89,5.44,2.27,2.77,3.84,1.81-.4,4.42,8.37-5.33-.13-5.77,1.29-1.59.71.11,1.28,4.05,3.32,1.88,2.06,2.13-.39,5.62,3.47,1.48,3.43-1.19-2.14,5.16,3.96,5.51-1.03,3.01.39,4.82,6.02,3.21,2.04,5.55-2.29,8.85-4.75,5.7-5.53,2.17-2.57,2.8-3.77,2.04-1.22,1.83-3.87,2.18h-.8ZM446.87,390.82l1.56.79.36,1.32-1.92-2.11ZM505.17,388.89l.19-.28.34.43-.28.44-.26-.58ZM444.51,388.23l.54.03.57,1.19-1.11-1.22ZM499.31,366.02l-.8-3.04,1.61.66-.07,3.14-.73-.77ZM490.97,316.21l.24-.06-.16.24-.12.12.04-.3Z"},"BCN":{"type":"path","data":"M448.53,223.66l-47.07-.17,1.79-1.97-2.41-2.13.13-1.7,2.76-3.21,1.08-5.42-1.32.04,4.19-6.76.1-4.18-2.92-7.69-2.52-.52-2.61-2.69-.58-5.73-2.8-4.12-2.39-.21-.82-1.03.23-6.56-2.82-.22-.49-3.36-2.51-1.65-4.45-7.99-3.37-1.82-3.91-.56-1.15-3.9-4.58-2.09-2.5-3.63-1.88.39-1.91-3.3-1.37-.16-1.35-2.17,1.64-5.8-1.36-3.65-1.4-.62,2.24-4.93-.28-2.07,2.05-6.86-.5-3.57-2.6-3.35-3.49-2.76,3.14-7.87.87-6.63-3.92-4.18-2.27-5.39-1.62-.26,3.2-7.32-1.5-6.74-1.61-2-1.29-5.11-3.91-4.55-.33-1.02,2.76-4.01.34-2.45,2.04-1.5,1.67-6.64-4.22-2.53.51-2.36-3.69-2.49,1.13-4.08-.17-6.73-3.33-2.03-.24-8.41.36-1.04,32.74-3.31,24.51-2.28,33.67-2.88-1.72,2.01-2.81,5.4-3.86.13-4.21,6.76-4.55,4.42,1.23,3.4-1.67,2.66-.57,3.3-3.46,6.73,6.83,6.15-1.18,2.08-.54,6.23-2.2,2.11-2.51,4.2-1.87,5.72-2.86,5.13-1.42,4.97-.15,4.24,1.19,1.63-1.63,2.35,3.89,3.32-.67,4.86-2.69,8.65.71,6.58-3.42,10.38-2.27,3.94,1.77,6,.54,5.33,3.43,3.95-.83,2.79,2.6,4.95,3.28-1.47,1.41.74,1.05,2.29,5.4,5.96,4.15,6.41,1.89,1.13,3.11,5.16-1.54,4.73,2.14,3.49.35,2.05-2.1,5.04,1.01,5.79,4-3.73,1.48.87-.76,6.53,5.5-2.31.74.87-.18,6.32.8,1.31-.7,6.22,4.55,3.31,3.71-.9.67,1.05-2.68,6.07,1.82,4.65-1.45,3.01-.94,5.11,1.12,2.49-.15.41-.45-1ZM395.39,223.5l.04.17-.57.34.53-.51ZM446.72,171.26l-1.14-3.46-3.08-2.94-.61-3.02-1.94-2.31-1.59-4.65,2.09-3.74,1.31.43,1.8,2.7.53,3.08-1.24,5.47,6.31.32-1.5,6.21.19,3.02-1.12-1.11Z"}};
+
+  let paths = '';
+  Object.keys(GEOM).forEach(svgId => {
+    const stateCode = svgToState(svgId);
+    const isActive = activeStates.has(stateCode);
+    // Determine color: active states with stock items → ok/low/out; active without items → presence; inactive → none
+    let status;
+    if (isActive) {
+      const hasItems = SUCURSAL_ITEMS.some(i => (UDN_STATE_MAP[i.udn]?.state||'') === stateCode);
+      status = hasItems ? getStateStatus(stateCode) : 'presence';
+    } else {
+      status = 'none';
+    }
+    const c = SC[status];
+    const isSelected = _selectedSucursalState === stateCode;
+    const strokeColor = isSelected ? SC.sel.stroke : c.stroke;
+    const strokeWidth = isSelected ? SC.sel.sw : c.sw;
+
+    // Build tooltip: state name + cities
+    const udns = UDN_LIST.filter(u => (UDN_STATE_MAP[u]?.state||'') === stateCode);
+    const cities = [...new Set(udns.map(u => UDN_STATE_MAP[u]?.city).filter(Boolean))];
+    const stateName = STATE_NAMES[stateCode] || stateCode;
+    const tooltipText = isActive
+      ? `${stateName}&#10;${cities.join(', ')}&#10;${udns.length} UDN${udns.length>1?'s':''}`
+      : stateName;
+
+    const interactivity = isActive
+      ? `onclick="selectSucursalState('${stateCode}')" style="cursor:pointer"`
+      : '';
+    const hoverFill = isActive ? `this.setAttribute('fill','${c.stroke}30')` : '';
+    const outFill   = isActive ? `this.setAttribute('fill','${c.fill}')` : '';
+
+    const g = GEOM[svgId];
+    const commonAttrs = `fill="${c.fill}" stroke="${strokeColor}" stroke-width="${strokeWidth}" ${interactivity} onmouseover="${hoverFill}" onmouseout="${outFill}"`;
+    const shape = g.type === 'path'
+      ? `<path d="${g.data}" ${commonAttrs}><title>${tooltipText}</title></path>`
+      : `<polygon points="${g.data}" ${commonAttrs}><title>${tooltipText}</title></polygon>`;
+    paths += shape;
+  });
+
+  // Build legend
+  const legendItems = [
+    { color: SC.ok.fill,       border: SC.ok.stroke,       label: 'Stock OK' },
+    { color: SC.low.fill,      border: SC.low.stroke,      label: 'Stock bajo' },
+    { color: SC.out.fill,      border: SC.out.stroke,      label: 'Sin stock' },
+    { color: SC.presence.fill, border: SC.presence.stroke, label: 'Presencia · sin artículos asignados' },
+    { color: SC.none.fill,     border: SC.none.stroke,     label: 'Sin UDN' },
+  ];
+  const legend = legendItems.map((item, i) =>
+    `<g transform="translate(0,${i*18})">
+      <rect x="0" y="0" width="13" height="13" rx="2" fill="${item.color}" stroke="${item.border}" stroke-width="1"/>
+      <text x="18" y="10.5" fill="#6b6760" font-size="11" font-family="sans-serif">${item.label}</text>
+    </g>`
+  ).join('');
+
+  container.innerHTML = `<svg viewBox="0 0 1655 857" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block;">
+    ${paths}
+    <g transform="translate(20,20)">${legend}</g>
+  </svg>`;
+}
+
+function selectSucursalState(code) {
+  _selectedSucursalState = _selectedSucursalState === code ? null : code;
+  renderMexicoMap();
+  renderSelectedStatePanel(code);
+}
+
+function renderSelectedStatePanel(code) {
+  const panel = document.getElementById('ss-selected-info');
+  if (!panel) return;
+  if (!code || _selectedSucursalState === null) {
+    panel.innerHTML = `<div style="font-size:13px;color:var(--text3);text-align:center;padding:20px;">Haz clic en un estado del mapa para ver el detalle</div>`;
+    return;
+  }
+  const udns = UDN_LIST.filter(u => (UDN_STATE_MAP[u]?.state||'') === code);
+    const STATE_NAMES = {AGS:'Aguascalientes',BCN:'Baja California',CDMX:'Ciudad de México',GTO:'Guanajuato',
+    JAL:'Jalisco',MEX:'Estado de México',NLE:'Nuevo León',PUE:'Puebla',QRO:'Querétaro',SLP:'San Luis Potosí'};
+  const stateName = STATE_NAMES[code] || code;
+
+  let html = `<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px;font-family:var(--display);">${stateName}</div>`;
+  udns.forEach(udn => {
+    const items = SUCURSAL_ITEMS.filter(i => i.udn === udn);
+    const udnStatus = getSucursalStatus(udn);
+    const c = { ok:'var(--green)', low:'var(--amber)', out:'var(--red)', none:'var(--text3)' }[udnStatus];
+    html += `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r2);padding:12px;margin-bottom:8px;">
+      <div style="font-size:12px;font-weight:700;color:${c};margin-bottom:8px;">${udn}</div>`;
+    if (!items.length) {
+      html += `<div style="font-size:11.5px;color:var(--text3);">Sin artículos asignados</div>`;
+    } else {
+    items.forEach(item => {
+        const p = getProd(item.product_id);
+        const t = getType(p?.type_id);
+        const qty = item.branch_qty ?? 0;
+        const sc = qty === 0 ? 'out' : qty < item.min_qty ? 'low' : 'ok';
+        const sc_c = sc==='ok'?'var(--green)':sc==='low'?'var(--amber)':'var(--red)';
+        html += `<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-top:1px solid var(--border);">
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t?.name||'?'} ${p?.color||''} · T${p?.size||'?'}</div>
+            <div style="font-size:11px;color:var(--text3);">Mín: ${item.min_qty}${item.note?' · '+item.note:''}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+            <input type="number" min="0" value="${qty}"
+              style="width:56px;font-family:var(--mono);font-size:16px;font-weight:700;color:${sc_c};text-align:center;border:1.5px solid var(--border);border-radius:6px;padding:3px 4px;background:var(--bg);"
+              onchange="updateBranchQty('${item.id}', this.value)"
+              title="Cantidad en esta UDN">
+            <span style="font-size:10px;color:var(--text3)">uds</span>
+          </div>
+        </div>`;
+      });
+    }
+    html += `</div>`;
+  });
+  panel.innerHTML = html;
+}
+
+function renderSucursalGlobalSummary() {
+  const el = document.getElementById('ss-global-summary');
+  if (!el) return;
+  const activeUdns = [...new Set(SUCURSAL_ITEMS.map(i => i.udn))];
+  const total = activeUdns.length;
+  const ok    = activeUdns.filter(u => getSucursalStatus(u) === 'ok').length;
+  const low   = activeUdns.filter(u => getSucursalStatus(u) === 'low').length;
+  const out   = activeUdns.filter(u => getSucursalStatus(u) === 'out').length;
+  el.innerHTML = `
+    <div style="text-align:center;padding:8px;background:var(--bg3);border-radius:var(--r2);">
+      <div style="font-family:var(--mono);font-size:22px;font-weight:700">${total}</div>
+      <div style="font-size:10.5px;color:var(--text3)">Sucursales activas</div>
+    </div>
+    <div style="text-align:center;padding:8px;background:var(--green2);border-radius:var(--r2);">
+      <div style="font-family:var(--mono);font-size:22px;font-weight:700;color:var(--green)">${ok}</div>
+      <div style="font-size:10.5px;color:var(--text3)">Stock OK</div>
+    </div>
+    <div style="text-align:center;padding:8px;background:var(--amber2);border-radius:var(--r2);">
+      <div style="font-family:var(--mono);font-size:22px;font-weight:700;color:var(--amber)">${low}</div>
+      <div style="font-size:10.5px;color:var(--text3)">Stock bajo</div>
+    </div>
+    <div style="text-align:center;padding:8px;background:var(--red2);border-radius:var(--r2);">
+      <div style="font-family:var(--mono);font-size:22px;font-weight:700;color:var(--red)">${out}</div>
+      <div style="font-size:10.5px;color:var(--text3)">Sin stock</div>
+    </div>`;
+}
+
+function renderSucursalList() {
+  const el = document.getElementById('ss-list');
+  if (!el) return;
+
+  const q      = (document.getElementById('ss-q')?.value||'').toLowerCase();
+  const statusF = document.getElementById('ss-status')?.value||'';
+
+  // Group items by UDN
+  let udns = [...new Set(SUCURSAL_ITEMS.map(i => i.udn))];
+  if (q) udns = udns.filter(u => u.toLowerCase().includes(q) || (UDN_STATE_MAP[u]?.label||'').toLowerCase().includes(q));
+  if (statusF) udns = udns.filter(u => getSucursalStatus(u) === statusF);
+
+  if (!udns.length && !SUCURSAL_ITEMS.length) {
+    el.innerHTML = `<div class="empty"><div class="empty-icon">🗺️</div><h3>Sin artículos asignados</h3><p>Haz clic en "Asignar artículo" para comenzar</p></div>`;
+    return;
+  }
+  if (!udns.length) {
+    el.innerHTML = `<div class="empty"><div class="empty-icon">🔍</div><h3>Sin resultados</h3><p>Ajusta la búsqueda o el filtro</p></div>`;
+    return;
+  }
+
+  el.innerHTML = udns.map(udn => {
+    const items = SUCURSAL_ITEMS.filter(i => i.udn === udn);
+    const udnStatus = getSucursalStatus(udn);
+    const stateInfo = UDN_STATE_MAP[udn];
+    const c = { ok:'var(--green)', low:'var(--amber)', out:'var(--red)', none:'var(--text3)' }[udnStatus];
+    const bg = { ok:'var(--green2)', low:'var(--amber2)', out:'var(--red2)', none:'var(--bg3)' }[udnStatus];
+    const labels = { ok:'Stock OK', low:'Stock bajo', out:'Sin stock', none:'Sin artículos' };
+
+    return `<div class="card" style="margin-bottom:14px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:36px;height:36px;background:${bg};border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="2"><polygon points="3 11 12 2 21 11 21 22 3 22"/><rect x="9" y="14" width="6" height="8"/></svg>
+          </div>
+          <div>
+            <div style="font-family:var(--display);font-size:14px;font-weight:700;">${udn}</div>
+            <div style="font-size:12px;color:var(--text3);">${stateInfo?.label||''}</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:${bg};color:${c}">${labels[udnStatus]}</span>
+          <button class="btn btn-ghost btn-sm" onclick="addItemToUdn('${udn.replace(/'/g,"&#39;")}')">+ Artículo</button>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;">
+        ${items.map(item => {
+          const p = getProd(item.product_id);
+          const t = getType(p?.type_id);
+          const qty = item.branch_qty ?? 0;
+          const sc = qty === 0 ? 'out' : qty < item.min_qty ? 'low' : 'ok';
+          const sc_c  = sc==='ok'?'var(--green)':sc==='low'?'var(--amber)':'var(--red)';
+          const sc_bg = sc==='ok'?'var(--green2)':sc==='low'?'var(--amber2)':'var(--red2)';
+          return `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r2);padding:12px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${t?.name||'?'} ${p?.color||''}</div>
+              <div style="font-size:11px;color:var(--text3);margin-top:2px;">Talla ${p?.size||'?'} · mín. ${item.min_qty} uds</div>
+              ${item.note?`<div style="font-size:11px;color:var(--text3);font-style:italic;">${item.note}</div>`:''}
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+              <div style="text-align:center;">
+                <input type="number" min="0" value="${qty}"
+                  style="width:62px;font-family:var(--mono);font-size:22px;font-weight:700;line-height:1;color:${sc_c};text-align:center;border:1.5px solid var(--border);border-radius:8px;padding:4px 4px 2px;background:var(--bg);display:block;"
+                  onchange="updateBranchQty('${item.id}', this.value)"
+                  title="Toca para editar la cantidad en esta sucursal">
+                <div style="font-size:10px;color:var(--text3);margin-top:2px;">uds en sucursal</div>
+              </div>
+              <button class="btn btn-ghost btn-icon btn-sm" onclick="removeSucursalItem('${item.id}')" style="color:var(--red)" title="Quitar">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function addItemToUdn(udn) {
+  const sel = document.getElementById('si-udn');
+  if (sel) sel.value = udn;
+  openModal('m-new-sucursal-item');
+}
+
+function openModal_sucursalItem() {
+  const udnSel = document.getElementById('si-udn');
+  if (udnSel && udnSel.options.length <= 1) {
+    UDN_LIST.forEach(u => {
+      const o = document.createElement('option'); o.value = u; o.textContent = u;
+      udnSel.appendChild(o);
+    });
+  }
+  if (!document.getElementById('si-prod-sel')._built) {
+    buildPSel('si-prod-sel', p => {});
+    document.getElementById('si-prod-sel')._built = true;
+  }
+}
+
+// Patch openModal to init sucursal item modal
+const __origOpenModal = openModal;
+window.openModal = function(id) {
+  __origOpenModal(id);
+  if (id === 'm-new-sucursal-item') openModal_sucursalItem();
+};
+
+async function saveSucursalItem() {
+  const udn        = document.getElementById('si-udn')?.value;
+  const min        = parseInt(document.getElementById('si-min')?.value)||1;
+  const branchQty  = parseInt(document.getElementById('si-branch-qty')?.value)||0;
+  const note       = document.getElementById('si-note')?.value.trim()||'';
+  const pselContainer = document.getElementById('si-prod-sel');
+  const selectedProd  = pselContainer?._selectedProd;
+  const trigger    = document.querySelector('#si-prod-sel .psel-name');
+  const prodId     = selectedProd?.id || trigger?._selectedProdId;
+
+  if (!udn)    { toast('Selecciona una UDN','t-red'); return; }
+  if (!prodId) { toast('Selecciona un artículo','t-red'); return; }
+  if (SUCURSAL_ITEMS.find(i => i.udn === udn && i.product_id === prodId)) {
+    toast('Este artículo ya está asignado a esa UDN','t-amber'); return;
+  }
+
+  const item = { id: uid(), udn, product_id: prodId, branch_qty: branchQty, min_qty: min, note };
+  SUCURSAL_ITEMS.push(item);
+  saveSucursalItems();
+  closeModal('m-new-sucursal-item');
+  toast('Artículo asignado a '+udn,'t-green');
+  renderSucursales();
+}
+
+function updateBranchQty(itemId, rawVal) {
+  const qty = Math.max(0, parseInt(rawVal)||0);
+  const item = SUCURSAL_ITEMS.find(i => i.id === itemId);
+  if (!item) return;
+  item.branch_qty = qty;
+  saveSucursalItems();
+  // Refresh map colors and summary without full re-render (avoids losing input focus)
+  renderMexicoMap();
+  renderSucursalGlobalSummary();
+  // Update the UDN header badge in the list without re-rendering the whole list
+  renderSucursalList();
+}
+
+function removeSucursalItem(id) {
+  SUCURSAL_ITEMS = SUCURSAL_ITEMS.filter(i => i.id !== id);
+  saveSucursalItems();
+  renderSucursales();
+  toast('Artículo removido');
+}
+
+// Init sucursal items on app load
+loadSucursalItems();
+
+// Patch buildPSel to track selected product on container
+const __origBuildPSel = buildPSel;
+window.buildPSel = function(containerId, onSelect) {
+  __origBuildPSel(containerId, function(p) {
+    const container = document.getElementById(containerId);
+    if (container) container._selectedProd = p;
+    onSelect(p);
+  });
+};
+
 </script>
 
 <!-- Mobile Bottom Navigation -->
