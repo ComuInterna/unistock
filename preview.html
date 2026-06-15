@@ -314,7 +314,8 @@ tr:hover td { background: var(--bg2); }
 
 <script>
 // ── CONFIG ──────────────────────────────────────────────────────────────────
-// Reads the same localStorage config that the admin app uses — no extra setup needed
+var SUPABASE_URL = 'https://ozkqmpdbtzbtavyyxrvz.supabase.co';
+var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im96a3FtcGRidHpidGF2eXl4cnZ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5MDA3MzcsImV4cCI6MjA5MzQ3NjczN30.18UeEOQEFdbL82nQm-0LY_GHghubMLwqicy4nDbilOs';
 var SB   = null;
 var CATS = [], TYPES = [], PRODS = [];
 var _view = 'grid';
@@ -353,14 +354,7 @@ function fmtDate(d) {
 // ── INIT ────────────────────────────────────────────────────────────────────
 (async function() {
   try {
-    var raw = localStorage.getItem('unistock-cfg');
-    if (!raw) { showError('No se encontró configuración de Supabase. Abre primero la app admin.'); return; }
-    var cfg = JSON.parse(raw);
-    if (cfg.mode === 'supabase' && cfg.url && cfg.key) {
-      await loadFromSupabase(cfg.url, cfg.key);
-    } else {
-      loadFromLocal();
-    }
+    await loadFromSupabase(SUPABASE_URL, SUPABASE_KEY);
     populateCatFilter();
     updateHeroStats();
     applyFilters();
