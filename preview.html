@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<title>UniStock — Vista de Stock</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      #f4f3ef;
+  --bg2:     #eeede8;
+  --surface: #ffffff;
+  --border:  #e6e4de;
+  --border2: #d4d1c9;
+  --text:    #181714;
+  --text2:   #636058;
+  --text3:   #a09d96;
+  --accent:  #d4522a;
+  --accent2: #fdf0ec;
+  --green:   #2a7d4f;
+  --green2:  #ecf7f1;
+  --amber:   #b87314;
+  --amber2:  #fdf6e8;
+  --red:     #be3a2b;
+  --red2:    #fdf0ee;
+  --r:       10px;
+  --r2:      6px;
+  --font:    'DM Sans', sans-serif;
+  --display: 'Syne', sans-serif;
+  --mono:    'DM Mono', monospace;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  font-family: var(--font); background: var(--bg); color: var(--text);
+  min-height: 100vh; -webkit-font-smoothing: antialiased;
+}
+
+/* ── TOPBAR ── */
+.topbar {
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  padding: 0 24px; height: 56px; display: flex; align-items: center;
+  justify-content: space-between; position: sticky; top: 0; z-index: 100;
+  box-shadow: 0 1px 3px rgba(0,0,0,.06);
+}
+.logo { display: flex; align-items: center; gap: 10px; }
+.logo-mark {
+  width: 32px; height: 32px; background: var(--text); border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+}
+.logo-mark svg { width: 16px; height: 16px; stroke: white; fill: none; stroke-width: 1.5; }
+.logo-name { font-family: var(--display); font-size: 16px; font-weight: 700; }
+.logo-tag {
+  font-size: 11px; font-family: var(--mono); color: var(--accent);
+  background: var(--accent2); border: 1px solid rgba(212,82,42,.2);
+  padding: 2px 8px; border-radius: 20px; letter-spacing: .04em;
+}
+.topbar-right { display: flex; align-items: center; gap: 10px; }
+.read-only-badge {
+  font-size: 11px; font-weight: 600; color: var(--text3);
+  background: var(--bg2); border: 1px solid var(--border2);
+  padding: 4px 10px; border-radius: 20px; letter-spacing: .04em;
+  display: flex; align-items: center; gap: 5px;
+}
+.read-only-badge svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2; }
+.last-updated { font-size: 12px; color: var(--text3); font-family: var(--mono); }
+
+/* ── MAIN ── */
+.main { max-width: 1200px; margin: 0 auto; padding: 28px 24px 60px; }
+
+/* ── HERO ── */
+.hero {
+  background: var(--text); color: white; border-radius: 14px;
+  padding: 28px 32px; margin-bottom: 24px;
+  display: flex; align-items: center; justify-content: space-between; gap: 20px;
+  flex-wrap: wrap;
+}
+.hero-title { font-family: var(--display); font-size: 26px; font-weight: 800; margin-bottom: 4px; }
+.hero-sub { font-size: 14px; color: rgba(255,255,255,.55); }
+.hero-stats { display: flex; gap: 24px; flex-wrap: wrap; }
+.hstat { text-align: center; }
+.hstat-val { font-family: var(--mono); font-size: 28px; font-weight: 700; line-height: 1; }
+.hstat-lbl { font-size: 11px; color: rgba(255,255,255,.5); margin-top: 3px; letter-spacing: .04em; text-transform: uppercase; }
+.hstat-val.green { color: #6ee7a8; }
+.hstat-val.amber { color: #fcd34d; }
+.hstat-val.red   { color: #fca5a5; }
+
+/* ── FILTERS ── */
+.filters-bar {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 14px 16px;
+  display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.search-wrap { position: relative; flex: 1; min-width: 220px; }
+.search-wrap svg {
+  position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
+  width: 15px; height: 15px; stroke: var(--text3); fill: none; stroke-width: 2; pointer-events: none;
+}
+input[type=text], select {
+  font-family: var(--font); font-size: 14px; color: var(--text);
+  background: var(--bg); border: 1.5px solid var(--border);
+  border-radius: var(--r2); padding: 9px 12px; outline: none;
+  transition: border .15s; width: 100%;
+}
+input[type=text] { padding-left: 34px; }
+input[type=text]:focus, select:focus { border-color: var(--text); }
+input::placeholder { color: var(--text3); }
+select { min-width: 150px; width: auto; cursor: pointer; }
+.filter-count {
+  font-size: 12px; color: var(--text3); font-family: var(--mono);
+  white-space: nowrap; margin-left: auto;
+}
+
+/* ── VIEW TOGGLE ── */
+.view-toggle {
+  display: flex; gap: 4px; background: var(--bg2);
+  border: 1px solid var(--border); border-radius: var(--r2); padding: 3px;
+}
+.vt-btn {
+  padding: 6px 10px; border: none; border-radius: 4px; cursor: pointer;
+  background: none; color: var(--text3); transition: all .15s;
+  display: flex; align-items: center;
+}
+.vt-btn svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2; }
+.vt-btn.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+
+/* ── CATEGORY SECTION ── */
+.cat-section { margin-bottom: 28px; }
+.cat-header {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
+  padding-bottom: 10px; border-bottom: 1.5px solid var(--border);
+}
+.cat-icon { display: flex; align-items: center; width: 20px; height: 20px; flex-shrink: 0; }
+.cat-name { font-family: var(--display); font-size: 15px; font-weight: 700; }
+.cat-meta { font-size: 12px; color: var(--text3); font-family: var(--mono); margin-left: auto; }
+
+/* ── GRID VIEW ── */
+.product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px,1fr)); gap: 10px; }
+.product-card {
+  background: var(--surface); border: 1.5px solid var(--border);
+  border-radius: var(--r); padding: 16px; transition: box-shadow .15s;
+}
+.product-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.08); }
+.product-card.out  { border-color: var(--red);   background: var(--red2); }
+.product-card.low  { border-color: rgba(184,115,20,.4); background: var(--amber2); }
+.pc-label { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--text3); margin-bottom: 4px; }
+.pc-name  { font-size: 14px; font-weight: 600; margin-bottom: 2px; line-height: 1.3; }
+.pc-meta  { font-size: 11.5px; color: var(--text3); font-family: var(--mono); margin-bottom: 14px; }
+.pc-foot  { display: flex; align-items: flex-end; justify-content: space-between; }
+.pc-qty   { font-family: var(--mono); font-size: 32px; font-weight: 700; line-height: 1; color: var(--green); }
+.pc-qty.low { color: var(--amber); }
+.pc-qty.out { color: var(--red); }
+.pc-uds   { font-size: 11px; color: var(--text3); margin-top: 2px; }
+.pc-badge {
+  font-size: 10.5px; font-weight: 700; padding: 3px 9px; border-radius: 20px;
+  letter-spacing: .03em;
+}
+.pc-badge.ok  { background: var(--green2); color: var(--green); }
+.pc-badge.low { background: var(--amber2); color: var(--amber); }
+.pc-badge.out { background: var(--red2);   color: var(--red); }
+
+/* ── TABLE VIEW ── */
+.table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; }
+table { width: 100%; border-collapse: collapse; }
+thead { background: var(--bg2); }
+th { padding: 10px 14px; text-align: left; font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--text3); white-space: nowrap; border-bottom: 1px solid var(--border); }
+td { padding: 11px 14px; font-size: 13.5px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--bg2); }
+.badge {
+  display: inline-flex; align-items: center; font-size: 11px; font-weight: 700;
+  padding: 2px 8px; border-radius: 20px; font-family: var(--mono); white-space: nowrap;
+}
+.badge.ok  { background: var(--green2); color: var(--green); }
+.badge.low { background: var(--amber2); color: var(--amber); }
+.badge.out { background: var(--red2);   color: var(--red); }
+.badge.neutral { background: var(--bg2); color: var(--text2); border: 1px solid var(--border); }
+.qty-big { font-family: var(--mono); font-size: 18px; font-weight: 700; }
+.qty-big.ok  { color: var(--green); }
+.qty-big.low { color: var(--amber); }
+.qty-big.out { color: var(--red); }
+
+/* ── EMPTY ── */
+.empty {
+  text-align: center; padding: 60px 20px; color: var(--text3);
+}
+.empty-icon { font-size: 36px; margin-bottom: 12px; }
+.empty h3 { font-size: 16px; color: var(--text2); margin-bottom: 6px; }
+.empty p  { font-size: 14px; }
+
+/* ── LOADER ── */
+#loader {
+  position: fixed; inset: 0; background: var(--bg); z-index: 9999;
+  display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 14px;
+  transition: opacity .4s;
+}
+.spinner {
+  width: 32px; height: 32px; border: 3px solid var(--border2);
+  border-top-color: var(--text); border-radius: 50%; animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loader-text { font-size: 13px; color: var(--text3); font-family: var(--mono); }
+
+/* ── MOBILE ── */
+@media (max-width: 680px) {
+  .main { padding: 16px 14px 48px; }
+  .hero { padding: 20px; }
+  .hero-title { font-size: 20px; }
+  .hstat-val { font-size: 22px; }
+  .filters-bar { gap: 8px; }
+  .product-grid { grid-template-columns: repeat(auto-fill, minmax(160px,1fr)); }
+  .topbar { padding: 0 16px; }
+  .last-updated { display: none; }
+  table { min-width: 580px; }
+  .table-wrap { overflow-x: auto; }
+}
+
+/* ── CAT ICONS ── */
+.cat-svg { display:inline-flex;align-items:center;flex-shrink:0; }
+</style>
+</head>
+<body>
+
+<div id="loader">
+  <div class="spinner"></div>
+  <div class="loader-text">Cargando inventario…</div>
+</div>
+
+<!-- Topbar -->
+<header class="topbar">
+  <div class="logo">
+    <div class="logo-mark">
+      <svg viewBox="0 0 24 24"><polygon points="2.24 6.57 11.99 12.08 21.75 6.57 11.99 1 2.24 6.57"/><polyline points="11.99 12.08 11.99 23 21.84 17.65 21.75 6.57"/><polyline points="2.24 6.57 2.24 17.65 11.99 23"/></svg>
+    </div>
+    <span class="logo-name">UniStock</span>
+    <span class="logo-tag">Vista de Stock</span>
+  </div>
+  <div class="topbar-right">
+    <span class="last-updated" id="last-updated"></span>
+    <div class="read-only-badge">
+      <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      Solo lectura
+    </div>
+  </div>
+</header>
+
+<main class="main">
+
+  <!-- Hero stats -->
+  <div class="hero">
+    <div>
+      <div class="hero-title">Inventario de Uniformes</div>
+      <div class="hero-sub" id="hero-date">Riverline Ergonomic · actualizado hoy</div>
+    </div>
+    <div class="hero-stats">
+      <div class="hstat">
+        <div class="hstat-val" id="stat-refs">—</div>
+        <div class="hstat-lbl">Referencias</div>
+      </div>
+      <div class="hstat">
+        <div class="hstat-val" id="stat-total">—</div>
+        <div class="hstat-lbl">Unidades totales</div>
+      </div>
+      <div class="hstat">
+        <div class="hstat-val amber" id="stat-low">—</div>
+        <div class="hstat-lbl">Stock bajo</div>
+      </div>
+      <div class="hstat">
+        <div class="hstat-val red" id="stat-out">—</div>
+        <div class="hstat-lbl">Sin stock</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters-bar">
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" id="q" placeholder="Buscar por nombre, talla, color, SKU…" oninput="applyFilters()">
+    </div>
+    <select id="f-cat" onchange="applyFilters()">
+      <option value="">Todas las categorías</option>
+    </select>
+    <select id="f-gen" onchange="applyFilters()">
+      <option value="">Todos los géneros</option>
+      <option value="Hombre">Hombre</option>
+      <option value="Mujer">Mujer</option>
+      <option value="Unisex">Unisex</option>
+    </select>
+    <select id="f-stk" onchange="applyFilters()">
+      <option value="">Todo el stock</option>
+      <option value="ok">Stock OK</option>
+      <option value="low">Stock bajo</option>
+      <option value="out">Sin stock</option>
+    </select>
+    <div class="view-toggle">
+      <button class="vt-btn active" id="vt-grid" onclick="setView('grid')" title="Vista tarjetas">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      </button>
+      <button class="vt-btn" id="vt-table" onclick="setView('table')" title="Vista tabla">
+        <svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+    <span class="filter-count" id="filter-count"></span>
+  </div>
+
+  <!-- Stock content -->
+  <div id="stock-content"></div>
+
+</main>
+
+<script>
+// ── CONFIG ──────────────────────────────────────────────────────────────────
+// Reads the same localStorage config that the admin app uses — no extra setup needed
+var SB   = null;
+var CATS = [], TYPES = [], PRODS = [];
+var _view = 'grid';
+
+// ── CAT ICONS ──────────────────────────────────────────────────────────────
+var CAT_ICONS = {
+  '[IC16]': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11.98,2.97c1.11-.06,2.01-.34,2.77-.78l2.71.69c.92.24,1.76.73,2.43,1.42l3.08,3.2-2.93,2.96-1.78-1.78v12.22c0,.5-.41.91-.91.91h-5.37s.05,0,.05,0h-5.37c-.5,0-.91-.41-.91-.91v-12.22l-1.78,1.78-2.93-2.96,3.08-3.2c.66-.69,1.5-1.18,2.43-1.42l2.71-.69c.76.44,1.67.72,2.77.78"/><path d="M14.75,2.19c-.49,1.64-1.42,2.45-2.79,2.41h.08c-1.37.04-2.3-.77-2.79-2.41"/><path d="M16.02,2.51c-.57,2.15-1.88,3.34-4.06,3.42h.08c-2.18-.08-3.49-1.27-4.06-3.42"/></svg>',
+  '[IC17]': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4.45,14.09h-.81c-.67,0-1.22.55-1.22,1.22v5.09c0,.67.55,1.22,1.22,1.22h.81"/><path d="M6.58,11.25c0-8.12,10.87-8.12,10.87,0"/><path d="M11.97,3.32c1.06,0,2.12.19,3.1.6,1.22.51,2.32,1.35,3.06,2.44,1.39,2.04,1.43,4.67,1.42,7.13,0,2.39-.02,4.78-.03,7.17,0,.43,0,.86-.13,1.27s-.4.79-.79.96c-.26.1-.55.11-.82.11-3.75,0-7.5,0-11.25,0-.39,0-.8,0-1.16-.15-.31-.13-.57-.38-.73-.68-.17-.33-.19-.69-.18-1.06.02-.94.02-1.87,0-2.81s-.02-1.88-.02-2.81,0-1.87.02-2.81c0-.28.01-.55.02-.83.06-1.76.2-3.58,1.09-5.1.68-1.17,1.78-2.08,3.01-2.66,1.06-.5,2.23-.76,3.4-.77Z"/><path d="M19.52,14.09h.81c.67,0,1.22.55,1.22,1.22v5.09c0,.67-.55,1.22-1.22,1.22h-.81"/><path d="M11.99,21.61h4.51c.61,0,1.1-.49,1.1-1.1v-4.93c0-.61-.49-1.1-1.1-1.1h-4.51s0,0,0,0h-4.51c-.61,0-1.1.49-1.1,1.1v4.93c0,.61.49,1.1,1.1,1.1h4.51"/><polyline points="17.6 17.02 11.99 17.02 11.99 17.02 6.38 17.02"/><path d="M9.37,3.76c0-3.7,5.32-3.69,5.32,0"/></svg>',
+  '[IC18]': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4.65,12.68h1.6c.54,0,.98.44.98.98v7.13c0,.54-.44.98-.98.98h-1.6v-9.09h0Z" transform="translate(-2.9 1.29) rotate(-10)"/><path d="M3.26,13.84h1.43v7.79h-1.43c-1.06,0-1.92-.86-1.92-1.92v-3.96c0-1.06.86-1.92,1.92-1.92Z" transform="translate(-3.03 .79) rotate(-10)"/><path d="M16.77,12.68h1.6c.54,0,.98.44.98.98v7.13c0,.54-.44.98-.98.98h-1.6v-9.09h0Z" transform="translate(32.86 37.32) rotate(-170)"/><path d="M21.23,13.84h1.43v7.79h-1.43c-1.06,0-1.92-.86-1.92-1.92v-3.96c0-1.06.86-1.92,1.92-1.92Z" transform="translate(38.56 38.85) rotate(-170)"/><path d="M4.2,12.91c0-11.83,15.63-11.83,15.63,0"/><path d="M2.13,14C.78-2.38,23.37-1.71,21.85,14"/></svg>',
+  '[IC19]': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8.01,1.03c.22,3.04,1.19,6.15,2.89,9.32.14.26.21.54.21.83v11.81"/><line x1="11.11" y1="14.98" x2="1.79" y2="14.98"/><line x1="1.79" y1="18.25" x2="11.11" y2="18.25"/><path d="M12,3.54c1.52-.01,3.15-.85,3.99-2.5l3.72.95c-.57,5.19,0,8.84,2.5,9.88v9.29c0,1.02-.83,1.84-1.84,1.84,0,0-8.36,0-8.36,0H3.64c-1.02,0-1.84-.83-1.84-1.84v-9.29c2.5-1.04,3.07-4.69,2.5-9.88l3.72-.95c.84,1.65,2.47,2.49,3.99,2.5Z"/><path d="M15.99,1.03c-.22,3.04-1.19,6.15-2.89,9.32-.14.26-.21.54-.21.83v11.81"/><line x1="12.89" y1="14.98" x2="22.21" y2="14.98"/><line x1="22.21" y1="18.25" x2="12.89" y2="18.25"/></svg>',
+};
+var EMOJI_TO_IC = { '👕':'[IC16]', '🎒':'[IC17]', '🎧':'[IC18]', '🦺':'[IC19]' };
+
+function getCatIcon(val, size) {
+  size = size || '16px';
+  var key = EMOJI_TO_IC[val] || val;
+  if (CAT_ICONS[key]) return '<span class="cat-svg" style="width:'+size+';height:'+size+'">' + CAT_ICONS[key] + '</span>';
+  return '<span>' + (val||'') + '</span>';
+}
+
+function getType(id) { return TYPES.find(function(t){ return t.id===id; }); }
+function getCat(id)  { return CATS.find(function(c){ return c.id===id; }); }
+
+function stockClass(p) {
+  if (p.qty === 0) return 'out';
+  if (p.qty < (p.low_stock_threshold || 5)) return 'low';
+  return 'ok';
+}
+
+function fmtDate(d) {
+  if (!d) return '—';
+  var dt = new Date(d + 'T12:00:00');
+  return dt.toLocaleDateString('es-MX', { day:'numeric', month:'short', year:'numeric' });
+}
+
+// ── INIT ────────────────────────────────────────────────────────────────────
+(async function() {
+  try {
+    var raw = localStorage.getItem('unistock-cfg');
+    if (!raw) { showError('No se encontró configuración de Supabase. Abre primero la app admin.'); return; }
+    var cfg = JSON.parse(raw);
+    if (cfg.mode === 'supabase' && cfg.url && cfg.key) {
+      await loadFromSupabase(cfg.url, cfg.key);
+    } else {
+      loadFromLocal();
+    }
+    populateCatFilter();
+    updateHeroStats();
+    applyFilters();
+    document.getElementById('last-updated').textContent = 'Actualizado ' + new Date().toLocaleTimeString('es-MX', {hour:'2-digit',minute:'2-digit'});
+    document.getElementById('hero-date').textContent = 'Riverline Ergonomic · ' + new Date().toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'});
+  } catch(e) {
+    showError('Error al cargar: ' + e.message);
+  }
+  hideLoader();
+})();
+
+async function loadFromSupabase(url, key) {
+  if (!window.supabase) {
+    await new Promise(function(res, rej) {
+      var s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js';
+      s.onload = res; s.onerror = function() { rej(new Error('No se cargó Supabase')); };
+      document.head.appendChild(s);
+    });
+  }
+  SB = window.supabase.createClient(url, key);
+  var r = await Promise.all([
+    SB.from('categories').select('*').order('name'),
+    SB.from('product_types').select('*').order('name'),
+    SB.from('products').select('*').order('created_at'),
+  ]);
+  if (r[0].error) throw new Error(r[0].error.message);
+  CATS  = r[0].data || [];
+  TYPES = r[1].data || [];
+  PRODS = r[2].data || [];
+}
+
+function loadFromLocal() {
+  var raw = localStorage.getItem('unistock-local');
+  if (!raw) return;
+  var d = JSON.parse(raw);
+  CATS  = d.cats  || [];
+  TYPES = d.types || [];
+  PRODS = d.prods || [];
+}
+
+function hideLoader() {
+  var l = document.getElementById('loader');
+  l.style.opacity = '0';
+  setTimeout(function() { l.style.display = 'none'; }, 400);
+}
+
+function showError(msg) {
+  hideLoader();
+  document.getElementById('stock-content').innerHTML =
+    '<div class="empty"><div class="empty-icon">⚠️</div><h3>Error</h3><p>' + msg + '</p></div>';
+}
+
+// ── FILTERS ─────────────────────────────────────────────────────────────────
+function populateCatFilter() {
+  var sel = document.getElementById('f-cat');
+  CATS.forEach(function(c) {
+    var o = document.createElement('option'); o.value = c.id; o.textContent = c.name;
+    sel.appendChild(o);
+  });
+}
+
+function updateHeroStats() {
+  var total = PRODS.reduce(function(s,p){ return s+p.qty; }, 0);
+  var low   = PRODS.filter(function(p){ return p.qty>0 && p.qty<(p.low_stock_threshold||5); }).length;
+  var out   = PRODS.filter(function(p){ return p.qty===0; }).length;
+  document.getElementById('stat-refs').textContent  = PRODS.length;
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-low').textContent   = low;
+  document.getElementById('stat-out').textContent   = out;
+}
+
+function getFiltered() {
+  var q    = (document.getElementById('q').value || '').toLowerCase();
+  var catF = document.getElementById('f-cat').value;
+  var genF = document.getElementById('f-gen').value;
+  var stkF = document.getElementById('f-stk').value;
+  return PRODS.filter(function(p) {
+    if (catF && p.category_id !== catF) return false;
+    if (genF && p.gender !== genF) return false;
+    if (stkF && stockClass(p) !== stkF) return false;
+    if (q) {
+      var t = getType(p.type_id); var c = getCat(p.category_id);
+      var str = [t&&t.name, p.color, p.size, p.gender, p.sku, c&&c.name].join(' ').toLowerCase();
+      if (!str.includes(q)) return false;
+    }
+    return true;
+  });
+}
+
+function applyFilters() {
+  var list = getFiltered();
+  document.getElementById('filter-count').textContent = list.length + ' artículos';
+  if (_view === 'grid') renderGrid(list);
+  else renderTable(list);
+}
+
+function setView(v) {
+  _view = v;
+  document.getElementById('vt-grid').classList.toggle('active', v === 'grid');
+  document.getElementById('vt-table').classList.toggle('active', v === 'table');
+  applyFilters();
+}
+
+// ── RENDER GRID ─────────────────────────────────────────────────────────────
+function renderGrid(list) {
+  var el = document.getElementById('stock-content');
+  if (!list.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">🔍</div><h3>Sin resultados</h3><p>Ajusta la búsqueda o los filtros</p></div>';
+    return;
+  }
+  // Group by category
+  var groups = {};
+  list.forEach(function(p) {
+    var cid = p.category_id || '__none__';
+    if (!groups[cid]) groups[cid] = [];
+    groups[cid].push(p);
+  });
+
+  var html = '';
+  Object.keys(groups).forEach(function(cid) {
+    var cat   = getCat(cid);
+    var items = groups[cid];
+    var total = items.reduce(function(s,p){ return s+p.qty; }, 0);
+    html += '<div class="cat-section">';
+    html += '<div class="cat-header">';
+    html += getCatIcon(cat ? cat.icon : '', '20px');
+    html += '<span class="cat-name" style="color:'+(cat&&cat.color?cat.color:'var(--text)')+'">'+((cat&&cat.name)||'Sin categoría')+'</span>';
+    html += '<span class="cat-meta">'+items.length+' refs · '+total+' uds</span>';
+    html += '</div>';
+    html += '<div class="product-grid">';
+    items.forEach(function(p) {
+      var t  = getType(p.type_id);
+      var sc = stockClass(p);
+      var labels = {ok:'OK', low:'Bajo', out:'Sin stock'};
+      html += '<div class="product-card '+sc+'">';
+      html += '<div class="pc-label">'+(t&&t.name||'?')+'</div>';
+      html += '<div class="pc-name">'+p.color+'</div>';
+      html += '<div class="pc-meta">Talla '+p.size+' · '+(p.gender||'')+''+(p.sku?' · '+p.sku:'')+'</div>';
+      html += '<div class="pc-foot">';
+      html += '<div><div class="pc-qty '+sc+'">'+p.qty+'</div><div class="pc-uds">unidades</div></div>';
+      html += '<span class="pc-badge '+sc+'">'+labels[sc]+'</span>';
+      html += '</div></div>';
+    });
+    html += '</div></div>';
+  });
+  el.innerHTML = html;
+}
+
+// ── RENDER TABLE ─────────────────────────────────────────────────────────────
+function renderTable(list) {
+  var el = document.getElementById('stock-content');
+  if (!list.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">🔍</div><h3>Sin resultados</h3><p>Ajusta la búsqueda o los filtros</p></div>';
+    return;
+  }
+  var labels = {ok:'OK', low:'Bajo', out:'Sin stock'};
+  var rows = list.map(function(p) {
+    var t  = getType(p.type_id); var c = getCat(p.category_id);
+    var sc = stockClass(p);
+    return '<tr>'
+      + '<td><span style="display:inline-flex;align-items:center;gap:6px">'+getCatIcon(c&&c.icon||'','15px')+'<span style="font-size:12.5px;color:var(--text2)">'+(c&&c.name||'—')+'</span></span></td>'
+      + '<td><strong>'+(t&&t.name||'—')+'</strong></td>'
+      + '<td>'+p.color+'</td>'
+      + '<td><span class="badge neutral">'+p.size+'</span></td>'
+      + '<td>'+(p.gender||'—')+'</td>'
+      + '<td style="font-family:var(--mono);font-size:12px;color:var(--text3)">'+(p.sku||'—')+'</td>'
+      + '<td><span class="qty-big '+sc+'">'+p.qty+'</span></td>'
+      + '<td><span class="badge '+sc+'">'+labels[sc]+'</span></td>'
+      + '</tr>';
+  }).join('');
+  el.innerHTML = '<div class="table-wrap"><table>'
+    + '<thead><tr><th>Categoría</th><th>Artículo</th><th>Color</th><th>Talla</th><th>Género</th><th>SKU</th><th>Stock</th><th>Estado</th></tr></thead>'
+    + '<tbody>' + rows + '</tbody></table></div>';
+}
+</script>
+</body>
+</html>
