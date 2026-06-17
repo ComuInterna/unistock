@@ -330,37 +330,6 @@ body {
 .bn-item:hover { color: var(--text2); }
 .bn-label { font-size: 10.5px; }
 
-/* ── SETUP PROMPT ── */
-.setup-prompt {
-  position: fixed; inset: 0; background: var(--bg); z-index: 9999;
-  display: none; align-items: center; justify-content: center; padding: 24px;
-}
-.setup-prompt.show { display: flex; }
-.setup-card {
-  background: var(--bg2); border: 1px solid var(--border2); border-radius: 16px;
-  padding: 28px; max-width: 400px; width: 100%;
-}
-.sp-title { font-family: var(--display); font-size: 20px; font-weight: 700; margin-bottom: 6px; }
-.sp-sub { font-size: 13.5px; color: var(--text2); margin-bottom: 18px; line-height: 1.6; }
-.sp-field { margin-bottom: 12px; }
-.sp-field label { font-size: 12px; font-weight: 600; color: var(--text2); display: block; margin-bottom: 6px; }
-.sp-field input {
-  width: 100%; background: var(--bg3); border: 1.5px solid var(--border);
-  color: var(--text); padding: 11px 14px; border-radius: 10px;
-  font-family: var(--mono); font-size: 13px; outline: none; transition: border .15s;
-}
-.sp-field input:focus { border-color: var(--accent); }
-.btn-sp-save {
-  width: 100%; background: var(--accent); color: white; border: none;
-  padding: 14px; border-radius: 10px; font-family: var(--display);
-  font-size: 15px; font-weight: 700; cursor: pointer; margin-bottom: 10px;
-}
-.btn-sp-local {
-  width: 100%; background: none; color: var(--text3); border: 1px solid var(--border);
-  padding: 11px; border-radius: 10px; font-family: var(--font);
-  font-size: 13px; cursor: pointer;
-}
-
 /* ── TOAST ── */
 .toast-wrap {
   position: fixed; top: calc(var(--safe-t) + 70px); left: 50%; transform: translateX(-50%);
@@ -406,18 +375,6 @@ body {
 <div id="loader">
   <div class="loader-spinner"></div>
   <div class="loader-text">Cargando UniStock…</div>
-</div>
-
-<!-- Setup prompt -->
-<div class="setup-prompt" id="setup-prompt">
-  <div class="setup-card">
-    <div class="sp-title">Conectar Supabase</div>
-    <div class="sp-sub">Para usar en modo NFC, conecta tu base de datos. O continúa en modo local.</div>
-    <div class="sp-field"><label>Project URL</label><input type="text" id="sp-url" placeholder="https://xxx.supabase.co"></div>
-    <div class="sp-field"><label>Anon Key</label><input type="text" id="sp-key" placeholder="eyJ..."></div>
-    <button class="btn-sp-save" onclick="saveConfigAndLoad()">Conectar</button>
-    <button class="btn-sp-local" onclick="useLocalAndLoad()">Continuar en modo local</button>
-  </div>
 </div>
 
 <!-- Topbar -->
@@ -568,6 +525,21 @@ body {
         </div>
       </div>
 
+      <!-- PIN de autorización -->
+      <div style="margin-bottom:14px;">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:8px;display:flex;align-items:center;gap:5px;">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          PIN de autorización
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <input type="password" id="f-pin" maxlength="4" inputmode="numeric" pattern="[0-9]*"
+            placeholder="● ● ● ●"
+            style="width:110px;letter-spacing:.3em;font-size:20px;font-family:var(--mono);text-align:center;padding:10px 8px;background:var(--bg2);border:1.5px solid var(--border);border-radius:10px;color:var(--text);outline:none;"
+            oninput="resetPinError()" onkeydown="if(event.key==='Enter') confirmarMovimiento()">
+          <span id="pin-error" style="display:none;font-size:12px;color:var(--red);font-weight:600;">PIN incorrecto</span>
+        </div>
+      </div>
+
       <button class="btn-action salida" id="btn-action" onclick="confirmarMovimiento()">
         <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
         Confirmar entrega
@@ -650,23 +622,16 @@ function getCatIcon(val, size) {
   return '<span>' + (val || '') + '</span>';
 }
 
+var SUPABASE_URL = 'https://ozkqmpdbtzbtavyyxrvz.supabase.co';
+var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im96a3FtcGRidHpidGF2eXl4cnZ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5MDA3MzcsImV4cCI6MjA5MzQ3NjczN30.18UeEOQEFdbL82nQm-0LY_GHghubMLwqicy4nDbilOs';
+
 // ── INIT ──
 (async function() {
   try {
-    var raw = localStorage.getItem('unistock-cfg');
-    if (!raw) {
-      document.getElementById('setup-prompt').classList.add('show');
-    } else {
-      var cfg = JSON.parse(raw);
-      if (cfg.mode === 'supabase' && cfg.url && cfg.key) {
-        await loadSupabase(cfg.url, cfg.key);
-      } else {
-        loadLocal();
-      }
-      populateUDNSelect();
-      var sku = new URLSearchParams(window.location.search).get('sku');
-      if (sku) setTimeout(function() { loadProductBySKU(sku.toUpperCase()); }, 200);
-    }
+    await loadSupabase(SUPABASE_URL, SUPABASE_KEY);
+    populateUDNSelect();
+    var sku = new URLSearchParams(window.location.search).get('sku');
+    if (sku) setTimeout(function() { loadProductBySKU(sku.toUpperCase()); }, 200);
   } catch(e) {
     showToast('Error al iniciar: ' + e.message);
   }
@@ -710,29 +675,6 @@ async function loadSupabase(url, key) {
   TYPES = results[1].data || [];
   PRODS = results[2].data || [];
   COLLS = (results[3] && !results[3].error) ? results[3].data || [] : [];
-}
-
-function saveConfigAndLoad() {
-  var url = document.getElementById('sp-url').value.trim().replace(/\/rest\/v1.*$/, '').replace(/\/$/, '');
-  var key = document.getElementById('sp-key').value.trim();
-  if (!url || !key) { showToast('Ingresa URL y Key'); return; }
-  localStorage.setItem('unistock-cfg', JSON.stringify({ url: url, key: key, mode: 'supabase' }));
-  location.reload();
-}
-
-function useLocalAndLoad() {
-  localStorage.setItem('unistock-cfg', JSON.stringify({ url: '', key: '', mode: 'local' }));
-  location.reload();
-}
-
-function loadLocal() {
-  var raw = localStorage.getItem('unistock-local');
-  if (!raw) return;
-  var d = JSON.parse(raw);
-  CATS  = d.cats  || [];
-  TYPES = d.types || [];
-  PRODS = d.prods || [];
-  COLLS = d.colls || [];
 }
 
 // ── COLLABORATOR DROPDOWN (entrega) ──
@@ -848,9 +790,35 @@ function updateModeUI() {
   document.getElementById('form-fields').style.display = 'block';
 }
 
+var OPERATION_PIN = '2020';
+
+function resetPinError() {
+  var el = document.getElementById('pin-error');
+  if (el) el.style.display = 'none';
+  var inp = document.getElementById('f-pin');
+  if (inp) inp.style.borderColor = 'var(--border)';
+}
+
+function checkPin() {
+  var val = (document.getElementById('f-pin')?.value || '').trim();
+  if (val !== OPERATION_PIN) {
+    var err = document.getElementById('pin-error');
+    if (err) err.style.display = 'inline';
+    var inp = document.getElementById('f-pin');
+    if (inp) {
+      inp.style.borderColor = 'var(--red)';
+      inp.value = '';
+      inp.focus();
+    }
+    return false;
+  }
+  return true;
+}
+
 // ── CONFIRM MOVEMENT ──
 async function confirmarMovimiento() {
   if (!currentProduct) return;
+  if (!checkPin()) return;
   var btn = document.getElementById('btn-action');
   btn.disabled = true;
   var originalText = btn.innerHTML;
@@ -958,6 +926,8 @@ function goBack() {
   document.getElementById('f-qty-sal').value  = 1;
   document.getElementById('f-qty-ent').value  = 1;
   document.getElementById('f-comment-ent').value = '';
+  document.getElementById('f-pin').value = '';
+  resetPinError();
   closeEntregaCollabDrop();
   currentProduct = null;
   currentMode    = 'salida';
