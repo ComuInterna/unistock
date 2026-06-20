@@ -845,6 +845,9 @@ tbody tr[draggable] { cursor:grab; } tbody tr[draggable]:active { cursor:grabbin
   /* Stock sucursales map responsive */
   #ss-grid { grid-template-columns: 1fr !important; }
   #ss-panel { order: -1; }
+  /* Calendar responsive */
+  #cal-grid > div { min-height: 64px !important; padding: 4px !important; }
+  #cal-weekday-header > div { font-size: 9.5px !important; padding: 6px 2px !important; }
 
   /* History mobile cards */
   .hist-card {
@@ -1009,6 +1012,10 @@ tbody tr[draggable] { cursor:grab; } tbody tr[draggable]:active { cursor:grabbin
       <button class="nav-item" data-page="stock-sucursales" onclick="nav('stock-sucursales',this)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 12 2 21 11 21 22 3 22"/><rect x="9" y="14" width="6" height="8"/></svg>
         <span>Stock Sucursales</span>
+      </button>
+      <button class="nav-item" data-page="calendario" onclick="nav('calendario',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><circle cx="8" cy="15" r="1.3" fill="currentColor" stroke="none"/><circle cx="12" cy="15" r="1.3" fill="currentColor" stroke="none"/><circle cx="16" cy="15" r="1.3" fill="currentColor" stroke="none"/></svg>
+        <span>Calendario de Regalos</span>
       </button>
       <div class="nav-group-label">Configuración</div>
       <button class="nav-item" data-page="catalogo" onclick="nav('catalogo',this)">
@@ -1301,6 +1308,54 @@ tbody tr[draggable] { cursor:grab; } tbody tr[draggable]:active { cursor:grabbin
         </div>
         <!-- Full sucursales list below map -->
         <div style="margin-top:20px;" id="ss-list"></div>
+      </div>
+
+      <!-- ═══ CALENDARIO DE REGALOS ═══ -->
+      <div id="page-calendario" class="page">
+        <div class="sh">
+          <div><div class="sh-t">Calendario de Regalos</div><div class="sh-s">Cumpleaños y aniversarios · envíos cada lunes, una semana antes</div></div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-secondary" onclick="openModal('m-import-cumple')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+              Cargar cumpleaños
+            </button>
+            <button class="btn btn-secondary" onclick="openModal('m-import-aniv')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+              Cargar aniversarios
+            </button>
+          </div>
+        </div>
+
+        <!-- This week's shipping alert -->
+        <div id="cal-ship-alert" style="margin-bottom:20px;"></div>
+
+        <!-- Month nav + legend -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <button class="btn btn-ghost btn-sm" onclick="calChangeMonth(-1)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <div id="cal-month-label" style="font-family:var(--display);font-size:16px;font-weight:700;min-width:170px;text-align:center;"></div>
+            <button class="btn btn-ghost btn-sm" onclick="calChangeMonth(1)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+            <button class="btn btn-ghost btn-sm" onclick="calGoToday()" style="font-size:12px;">Hoy</button>
+          </div>
+          <div style="display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--text2);">
+            <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:3px;background:#cfe8ff;display:inline-block;"></span> Cumpleaños 🎧</span>
+            <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:3px;background:#e3d9f7;display:inline-block;"></span> Aniversario 🗂️</span>
+            <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:3px;background:#ffd9a0;display:inline-block;border:1.5px solid #b87314;"></span> Lunes de envío</span>
+          </div>
+        </div>
+
+        <!-- Calendar grid -->
+        <div class="card" style="padding:0;overflow:hidden;">
+          <div id="cal-weekday-header" style="display:grid;grid-template-columns:repeat(7,1fr);background:var(--bg2);border-bottom:1px solid var(--border);"></div>
+          <div id="cal-grid" style="display:grid;grid-template-columns:repeat(7,1fr);"></div>
+        </div>
+
+        <!-- Day detail / shipping checklist -->
+        <div id="cal-day-detail" style="margin-top:20px;"></div>
       </div>
 
       <!-- ═══ CATÁLOGO ═══ -->
@@ -1827,6 +1882,48 @@ tbody tr[draggable] { cursor:grab; } tbody tr[draggable]:active { cursor:grabbin
   </div>
 </div>
 
+<!-- Modal: Importar cumpleaños -->
+<div class="backdrop" id="m-import-cumple">
+  <div class="modal modal-lg">
+    <div class="modal-hd">
+      <div><div class="modal-title">Cargar cumpleaños</div><div class="modal-sub">Excel con columnas: Nombre, Cargo, UDN, Cumpleaños</div></div>
+      <button class="modal-close" onclick="closeModal('m-import-cumple')"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div style="border:1.5px dashed var(--border2);border-radius:var(--r2);padding:28px;text-align:center;margin-bottom:6px;cursor:pointer;" onclick="document.getElementById('cumple-file').click()" id="cumple-dropzone">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="1.8" style="margin-bottom:8px;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+      <div style="font-size:13.5px;color:var(--text2);font-weight:500;">Haz clic para seleccionar el archivo .xlsx</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:4px;">o arrástralo aquí</div>
+      <input type="file" id="cumple-file" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleImportFile(this, 'cumpleanos')">
+    </div>
+    <div id="cumple-preview" style="margin-top:14px;max-height:280px;overflow-y:auto;"></div>
+    <div class="modal-ft">
+      <button class="btn btn-secondary" onclick="closeModal('m-import-cumple')">Cancelar</button>
+      <button class="btn btn-primary" id="cumple-confirm-btn" onclick="confirmImport('cumpleanos')" disabled>Importar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Importar aniversarios -->
+<div class="backdrop" id="m-import-aniv">
+  <div class="modal modal-lg">
+    <div class="modal-hd">
+      <div><div class="modal-title">Cargar aniversarios</div><div class="modal-sub">Excel con columnas: Nombre, Cargo, Fecha, UDN</div></div>
+      <button class="modal-close" onclick="closeModal('m-import-aniv')"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div style="border:1.5px dashed var(--border2);border-radius:var(--r2);padding:28px;text-align:center;margin-bottom:6px;cursor:pointer;" onclick="document.getElementById('aniv-file').click()" id="aniv-dropzone">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="1.8" style="margin-bottom:8px;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+      <div style="font-size:13.5px;color:var(--text2);font-weight:500;">Haz clic para seleccionar el archivo .xlsx</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:4px;">o arrástralo aquí</div>
+      <input type="file" id="aniv-file" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleImportFile(this, 'aniversario')">
+    </div>
+    <div id="aniv-preview" style="margin-top:14px;max-height:280px;overflow-y:auto;"></div>
+    <div class="modal-ft">
+      <button class="btn btn-secondary" onclick="closeModal('m-import-aniv')">Cancelar</button>
+      <button class="btn btn-primary" id="aniv-confirm-btn" onclick="confirmImport('aniversario')" disabled>Importar</button>
+    </div>
+  </div>
+</div>
+
 <!-- Toast container -->
 <div class="toasts" id="toasts"></div>
 
@@ -2164,7 +2261,8 @@ async function dbDelete(table, id) {
 const PAGE_TITLES = {
   dashboard:'Dashboard', inventario:'Inventario', entradas:'Entradas',
   salidas:'Salidas', historial:'Historial', catalogo:'Catálogo', colaboradores:'Colaboradores', grupos:'Grupos',
-  stock:'Stock', reportes:'Reportes', devoluciones:'Devoluciones', 'stock-sucursales':'Stock Sucursales'
+  stock:'Stock', reportes:'Reportes', devoluciones:'Devoluciones', 'stock-sucursales':'Stock Sucursales',
+  calendario:'Calendario de Regalos'
 };
 
 function nav(page, btn) {
@@ -2190,6 +2288,7 @@ function renderPage(page) {
   if (page === 'reportes')      renderReportes();
   if (page === 'devoluciones')  renderDevoluciones();
   if (page === 'stock-sucursales') renderSucursales();
+  if (page === 'calendario') renderCalendario();
 }
 
 function refreshAllViews() {
@@ -4568,6 +4667,478 @@ window.nav = function(page, btn) {
 };
 
 window.addEventListener('load', initMobileNav);
+
+// ─── CALENDARIO DE REGALOS ────────────────────────────────────────────────────
+// Data model persisted in localStorage:
+//   CAL_BIRTHDAYS: [{ id, name, role, udn, date:'MM-DD' }]
+//   CAL_ANNIVERSARIES: [{ id, name, role, udn, date:'MM-DD' }]
+//   CAL_SHIP_STATUS: { 'personId:eventType:year': 'pendiente'|'enviado' }
+let CAL_BIRTHDAYS = [];
+let CAL_ANNIVERSARIES = [];
+let CAL_SHIP_STATUS = {};
+let _calCurrentMonth = new Date().getMonth();
+let _calCurrentYear  = new Date().getFullYear();
+let _calSelectedDate = null;
+let _calImportRows = { cumpleanos: null, aniversario: null };
+
+function loadCalData() {
+  try { CAL_BIRTHDAYS     = JSON.parse(localStorage.getItem('unistock-cal-birthdays')||'[]'); } catch(e) { CAL_BIRTHDAYS = []; }
+  try { CAL_ANNIVERSARIES = JSON.parse(localStorage.getItem('unistock-cal-anniversaries')||'[]'); } catch(e) { CAL_ANNIVERSARIES = []; }
+  try { CAL_SHIP_STATUS   = JSON.parse(localStorage.getItem('unistock-cal-shipstatus')||'{}'); } catch(e) { CAL_SHIP_STATUS = {}; }
+}
+function saveCalBirthdays()     { localStorage.setItem('unistock-cal-birthdays', JSON.stringify(CAL_BIRTHDAYS)); }
+function saveCalAnniversaries() { localStorage.setItem('unistock-cal-anniversaries', JSON.stringify(CAL_ANNIVERSARIES)); }
+function saveCalShipStatus()    { localStorage.setItem('unistock-cal-shipstatus', JSON.stringify(CAL_SHIP_STATUS)); }
+loadCalData();
+
+const MONTH_NAMES_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const WEEKDAY_NAMES_ES = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+
+// ── ISO WEEK HELPERS (used for display only) ──
+function getISOWeek(date) {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = (d.getUTCDay() + 6) % 7; // Mon=0..Sun=6
+  d.setUTCDate(d.getUTCDate() - dayNum + 3);
+  const firstThursday = new Date(Date.UTC(d.getUTCFullYear(), 0, 4));
+  const diff = d - firstThursday;
+  return 1 + Math.round(diff / (7*24*60*60*1000));
+}
+
+// Get the Monday of the same week as a given date (local time, Mon=start of week)
+function getMondayOfWeek(date) {
+  const d = new Date(date);
+  const dow = (d.getDay() + 6) % 7; // Mon=0..Sun=6
+  d.setDate(d.getDate() - dow);
+  d.setHours(0,0,0,0);
+  return d;
+}
+
+// Shipping Monday = Monday of the event's week, minus 7 days (always one full week earlier,
+// even if the event itself falls on a Monday — per business rule)
+function getShipMondayForEventDate(eventDate) {
+  const eventMonday = getMondayOfWeek(eventDate);
+  const shipMonday = new Date(eventMonday);
+  shipMonday.setDate(shipMonday.getDate() - 7);
+  return shipMonday;
+}
+
+// Parse various Excel date formats into 'MM-DD'
+function parseDateToMD(val) {
+  if (val == null || val === '') return null;
+  // Excel serial number
+  if (typeof val === 'number') {
+    const d = new Date(Math.round((val - 25569) * 86400 * 1000));
+    return String(d.getUTCMonth()+1).padStart(2,'0') + '-' + String(d.getUTCDate()).padStart(2,'0');
+  }
+  const s = String(val).trim();
+  // dd/mm/yyyy or dd-mm-yyyy
+  let m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+  if (m) {
+    let day = parseInt(m[1]), mon = parseInt(m[2]);
+    if (mon > 12) { const t = day; day = mon; mon = t; } // swap if looks like mm/dd
+    return String(mon).padStart(2,'0') + '-' + String(day).padStart(2,'0');
+  }
+  // yyyy-mm-dd
+  m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (m) return String(parseInt(m[2])).padStart(2,'0') + '-' + String(parseInt(m[3])).padStart(2,'0');
+  // dd de mes / textual
+  const d = new Date(s);
+  if (!isNaN(d.getTime())) return String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  return null;
+}
+
+// ── EXCEL IMPORT ──
+async function handleImportFile(input, kind) {
+  const file = input.files[0];
+  if (!file) return;
+  if (!window.XLSX) {
+    await loadScript('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js');
+  }
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const wb = XLSX.read(e.target.result, { type:'array', cellDates:false });
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet, { defval:'' });
+      processImportRows(rows, kind);
+    } catch(err) {
+      toast('Error al leer el archivo: '+err.message, 't-red');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function findCol(row, candidates) {
+  const keys = Object.keys(row);
+  for (const cand of candidates) {
+    const found = keys.find(k => k.trim().toLowerCase() === cand.toLowerCase());
+    if (found) return found;
+  }
+  // partial match fallback
+  for (const cand of candidates) {
+    const found = keys.find(k => k.trim().toLowerCase().includes(cand.toLowerCase()));
+    if (found) return found;
+  }
+  return null;
+}
+
+function processImportRows(rows, kind) {
+  if (!rows.length) { toast('El archivo está vacío','t-red'); return; }
+
+  const nameCol = findCol(rows[0], ['Nombre']);
+  const roleCol = findCol(rows[0], ['Cargo']);
+  const udnCol  = findCol(rows[0], ['UDN']);
+  const dateCol = kind === 'cumpleanos' ? findCol(rows[0], ['Cumpleaños','Cumpleanos']) : findCol(rows[0], ['Fecha']);
+
+  if (!nameCol || !dateCol) {
+    toast('No se encontraron las columnas requeridas (Nombre y '+(kind==='cumpleanos'?'Cumpleaños':'Fecha')+')','t-red');
+    return;
+  }
+
+  const parsed = [];
+  let errors = 0;
+  rows.forEach(r => {
+    const name = String(r[nameCol]||'').trim();
+    if (!name) return;
+    const md = parseDateToMD(r[dateCol]);
+    if (!md) { errors++; return; }
+    parsed.push({
+      id: uid(),
+      name,
+      role: roleCol ? String(r[roleCol]||'').trim() : '',
+      udn:  udnCol  ? String(r[udnCol]||'').trim()  : '',
+      date: md
+    });
+  });
+
+  _calImportRows[kind] = parsed;
+  renderImportPreview(kind, parsed, errors, rows.length);
+  document.getElementById(kind==='cumpleanos'?'cumple-confirm-btn':'aniv-confirm-btn').disabled = parsed.length === 0;
+}
+
+function renderImportPreview(kind, parsed, errors, totalRows) {
+  const elId = kind === 'cumpleanos' ? 'cumple-preview' : 'aniv-preview';
+  const el = document.getElementById(elId);
+  if (!parsed.length) {
+    el.innerHTML = `<div style="font-size:13px;color:var(--red);padding:10px;">No se pudo procesar ningún registro válido.</div>`;
+    return;
+  }
+  const dateLbl = kind === 'cumpleanos' ? 'Cumpleaños' : 'Fecha';
+  let html = `<div style="font-size:12.5px;color:var(--text2);margin-bottom:10px;">
+    <strong style="color:var(--green)">${parsed.length}</strong> registros válidos de ${totalRows}
+    ${errors ? ` · <strong style="color:var(--red)">${errors}</strong> con fecha inválida (omitidos)` : ''}
+  </div>`;
+  html += `<table style="width:100%;border-collapse:collapse;font-size:12.5px;">
+    <thead><tr style="border-bottom:1px solid var(--border);">
+      <th style="text-align:left;padding:6px 8px;color:var(--text3);font-weight:600;">Nombre</th>
+      <th style="text-align:left;padding:6px 8px;color:var(--text3);font-weight:600;">Cargo</th>
+      <th style="text-align:left;padding:6px 8px;color:var(--text3);font-weight:600;">UDN</th>
+      <th style="text-align:left;padding:6px 8px;color:var(--text3);font-weight:600;">${dateLbl}</th>
+    </tr></thead><tbody>`;
+  parsed.slice(0, 30).forEach(p => {
+    html += `<tr style="border-bottom:1px solid var(--border);">
+      <td style="padding:6px 8px;">${p.name}</td>
+      <td style="padding:6px 8px;color:var(--text2);">${p.role||'—'}</td>
+      <td style="padding:6px 8px;color:var(--text2);">${p.udn||'—'}</td>
+      <td style="padding:6px 8px;font-family:var(--mono);">${p.date}</td>
+    </tr>`;
+  });
+  html += `</tbody></table>`;
+  if (parsed.length > 30) html += `<div style="font-size:11.5px;color:var(--text3);padding:8px;text-align:center;">...y ${parsed.length-30} más</div>`;
+  el.innerHTML = html;
+}
+
+function confirmImport(kind) {
+  const parsed = _calImportRows[kind];
+  if (!parsed || !parsed.length) return;
+  if (kind === 'cumpleanos') {
+    CAL_BIRTHDAYS = CAL_BIRTHDAYS.concat(parsed);
+    saveCalBirthdays();
+    closeModal('m-import-cumple');
+    document.getElementById('cumple-file').value = '';
+    document.getElementById('cumple-preview').innerHTML = '';
+    document.getElementById('cumple-confirm-btn').disabled = true;
+  } else {
+    CAL_ANNIVERSARIES = CAL_ANNIVERSARIES.concat(parsed);
+    saveCalAnniversaries();
+    closeModal('m-import-aniv');
+    document.getElementById('aniv-file').value = '';
+    document.getElementById('aniv-preview').innerHTML = '';
+    document.getElementById('aniv-confirm-btn').disabled = true;
+  }
+  toast(`${parsed.length} registros importados`, 't-green');
+  renderCalendario();
+}
+
+// ── SHIPPING LOGIC ──
+// For a given event (birthday/anniversary) occurring in year Y on date MM-DD,
+// find its ISO week. Shipping happens the Monday of (week - 1) of that same year-context.
+function getEventOccurrence(md, refYear) {
+  const [mm, dd] = md.split('-').map(Number);
+  return new Date(refYear, mm-1, dd, 12, 0, 0);
+}
+
+function getShipMondayForEvent(md, refYear) {
+  const eventDate = getEventOccurrence(md, refYear);
+  return getShipMondayForEventDate(eventDate);
+}
+
+function dateKey(d) {
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+// Build a map: dateKey -> { events: [...], isShipMonday: bool, shipFor: [...] }
+function buildCalendarIndex(year) {
+  const eventsByDate = {}; // dateKey -> [{type, person}]
+  const shipByDate = {};   // dateKey -> [{type, person, eventDateKey}]
+
+  function indexList(list, type) {
+    list.forEach(person => {
+      const eventDate = getEventOccurrence(person.date, year);
+      const ek = dateKey(eventDate);
+      if (!eventsByDate[ek]) eventsByDate[ek] = [];
+      eventsByDate[ek].push({ type, person, eventDateKey: ek });
+
+      const shipMonday = getShipMondayForEvent(person.date, year);
+      const sk = dateKey(shipMonday);
+      if (!shipByDate[sk]) shipByDate[sk] = [];
+      shipByDate[sk].push({ type, person, eventDateKey: ek });
+    });
+  }
+  indexList(CAL_BIRTHDAYS, 'cumpleanos');
+  indexList(CAL_ANNIVERSARIES, 'aniversario');
+
+  return { eventsByDate, shipByDate };
+}
+
+function getShipStatusKey(personId, type, eventDateKey) {
+  return personId + ':' + type + ':' + eventDateKey;
+}
+
+// ── RENDER CALENDAR ──
+function renderCalendario() {
+  loadCalData();
+  document.getElementById('cal-month-label').textContent = MONTH_NAMES_ES[_calCurrentMonth] + ' ' + _calCurrentYear;
+
+  // Weekday header
+  document.getElementById('cal-weekday-header').innerHTML = WEEKDAY_NAMES_ES.map(d =>
+    `<div style="padding:9px 6px;text-align:center;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;">${d}</div>`
+  ).join('');
+
+  const idx = buildCalendarIndex(_calCurrentYear);
+  // Also need prior/next year events near month boundary — rebuild with adjacent years merged
+  const idxPrev = buildCalendarIndex(_calCurrentYear - 1);
+  const idxNext = buildCalendarIndex(_calCurrentYear + 1);
+  function mergeMaps(a,b,c) {
+    const out = {...a};
+    [b,c].forEach(m => Object.keys(m).forEach(k => {
+      out[k] = (out[k]||[]).concat(m[k]);
+    }));
+    return out;
+  }
+  const eventsByDate = mergeMaps(idx.eventsByDate, idxPrev.eventsByDate, idxNext.eventsByDate);
+  const shipByDate   = mergeMaps(idx.shipByDate, idxPrev.shipByDate, idxNext.shipByDate);
+
+  // Build grid: Monday-start month view
+  const firstOfMonth = new Date(_calCurrentYear, _calCurrentMonth, 1);
+  const startOffset = (firstOfMonth.getDay() + 6) % 7; // days to subtract to reach Monday
+  const gridStart = new Date(firstOfMonth);
+  gridStart.setDate(gridStart.getDate() - startOffset);
+
+  const today = new Date();
+  const todayKey = dateKey(today);
+
+  let cellsHtml = '';
+  for (let i = 0; i < 42; i++) {
+    const cellDate = new Date(gridStart);
+    cellDate.setDate(gridStart.getDate() + i);
+    const ck = dateKey(cellDate);
+    const inMonth = cellDate.getMonth() === _calCurrentMonth;
+    const isToday = ck === todayKey;
+    const isMonday = cellDate.getDay() === 1;
+
+    const dayEvents = eventsByDate[ck] || [];
+    const shipEvents = (isMonday && shipByDate[ck]) ? shipByDate[ck] : [];
+
+    const bgColor = shipEvents.length ? '#fff5e6' : (inMonth ? 'var(--surface)' : 'var(--bg)');
+    const borderStyle = shipEvents.length ? '2px solid #e0a030' : '1px solid var(--border)';
+
+    let chipsHtml = '';
+    dayEvents.slice(0,3).forEach(ev => {
+      const isBday = ev.type === 'cumpleanos';
+      const bg = isBday ? '#cfe8ff' : '#e3d9f7';
+      const color = isBday ? '#1a5a8a' : '#5a3d8a';
+      const icon = isBday ? '🎧' : '🗂️';
+      chipsHtml += `<div style="background:${bg};color:${color};font-size:10px;font-weight:600;padding:2px 5px;border-radius:4px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${ev.person.name}">${icon} ${ev.person.name.split(' ')[0]}</div>`;
+    });
+    if (dayEvents.length > 3) chipsHtml += `<div style="font-size:9.5px;color:var(--text3);">+${dayEvents.length-3} más</div>`;
+
+    let shipBadge = '';
+    if (shipEvents.length) {
+      shipBadge = `<div style="background:#e0a030;color:white;font-size:9.5px;font-weight:700;padding:1px 6px;border-radius:10px;display:inline-block;margin-top:2px;">📦 Enviar ${shipEvents.length}</div>`;
+    }
+
+    cellsHtml += `<div onclick="calSelectDate('${ck}')" style="min-height:88px;padding:6px;background:${bgColor};border:${borderStyle};cursor:pointer;opacity:${inMonth?1:0.4};transition:box-shadow .12s;" onmouseover="this.style.boxShadow='inset 0 0 0 2px var(--accent)'" onmouseout="this.style.boxShadow='none'">
+      <div style="font-size:11.5px;font-weight:${isToday?'800':'600'};color:${isToday?'var(--accent)':'var(--text2)'};margin-bottom:3px;">${cellDate.getDate()}${isToday?' •':''}</div>
+      ${chipsHtml}
+      ${shipBadge}
+    </div>`;
+  }
+  document.getElementById('cal-grid').innerHTML = cellsHtml;
+
+  renderShipAlert(shipByDate, todayKey);
+
+  if (_calSelectedDate) {
+    renderDayDetail(_calSelectedDate, eventsByDate, shipByDate);
+  } else {
+    document.getElementById('cal-day-detail').innerHTML = '';
+  }
+}
+
+function calChangeMonth(delta) {
+  _calCurrentMonth += delta;
+  if (_calCurrentMonth > 11) { _calCurrentMonth = 0; _calCurrentYear++; }
+  if (_calCurrentMonth < 0)  { _calCurrentMonth = 11; _calCurrentYear--; }
+  renderCalendario();
+}
+
+function calGoToday() {
+  const t = new Date();
+  _calCurrentMonth = t.getMonth();
+  _calCurrentYear  = t.getFullYear();
+  _calSelectedDate = dateKey(t);
+  renderCalendario();
+}
+
+function calSelectDate(ck) {
+  _calSelectedDate = ck;
+  renderCalendario();
+}
+
+// Find the upcoming/current Monday that has shipments (within next 7 days), show as alert banner
+function renderShipAlert(shipByDate, todayKey) {
+  const el = document.getElementById('cal-ship-alert');
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  // Find nearest Monday (today if Monday, else next Monday) with shipments, searching forward up to 14 days
+  let foundKey = null, foundList = null, foundDate = null;
+  for (let i = 0; i < 14; i++) {
+    const d = new Date(today); d.setDate(today.getDate() + i);
+    if (d.getDay() !== 1) continue;
+    const k = dateKey(d);
+    if (shipByDate[k] && shipByDate[k].length) { foundKey = k; foundList = shipByDate[k]; foundDate = d; break; }
+  }
+
+  if (!foundList) {
+    el.innerHTML = '';
+    return;
+  }
+
+  const isThisMonday = today.getDay() === 1 && foundKey === todayKey;
+  const pendingCount = foundList.filter(ev => {
+    const sk = getShipStatusKey(ev.person.id, ev.type, ev.eventDateKey);
+    return CAL_SHIP_STATUS[sk] !== 'enviado';
+  }).length;
+
+  const dateLabel = foundDate.toLocaleDateString('es-MX', { weekday:'long', day:'numeric', month:'long' });
+
+  el.innerHTML = `<div style="background:linear-gradient(135deg,#fff5e6,#ffeacc);border:1.5px solid #e0a030;border-radius:var(--r);padding:16px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+    <div style="width:38px;height:38px;background:#e0a030;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px;">📦</div>
+    <div style="flex:1;min-width:200px;">
+      <div style="font-size:14px;font-weight:700;color:#8a5a10;">
+        ${isThisMonday ? '¡Hoy es lunes de envío!' : 'Próximo lunes de envío'} — ${dateLabel}
+      </div>
+      <div style="font-size:12.5px;color:#9a6a20;margin-top:2px;">
+        ${foundList.length} persona${foundList.length>1?'s':''} con evento la próxima semana
+        ${pendingCount ? ` · <strong>${pendingCount} pendiente${pendingCount>1?'s':''} de envío</strong>` : ' · todo enviado ✓'}
+      </div>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="calSelectDate('${foundKey}')" style="background:#e0a030;border-color:#e0a030;">Ver lista</button>
+  </div>`;
+}
+
+function renderDayDetail(ck, eventsByDate, shipByDate) {
+  const el = document.getElementById('cal-day-detail');
+  const [y,m,d] = ck.split('-').map(Number);
+  const date = new Date(y, m-1, d);
+  const dateLabel = date.toLocaleDateString('es-MX', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+
+  const dayEvents = eventsByDate[ck] || [];
+  const isMonday = date.getDay() === 1;
+  const shipEvents = isMonday ? (shipByDate[ck] || []) : [];
+
+  if (!dayEvents.length && !shipEvents.length) {
+    el.innerHTML = `<div class="card" style="text-align:center;padding:24px;color:var(--text3);font-size:13.5px;">
+      Sin eventos ni envíos para <strong style="color:var(--text2)">${dateLabel}</strong>
+    </div>`;
+    return;
+  }
+
+  let html = `<div class="card">`;
+  html += `<div style="font-family:var(--display);font-size:15px;font-weight:700;margin-bottom:14px;text-transform:capitalize;">${dateLabel}</div>`;
+
+  if (dayEvents.length) {
+    html += `<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:10px;">Eventos del día</div>`;
+    html += `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px;margin-bottom:${shipEvents.length?'22px':'0'};">`;
+    dayEvents.forEach(ev => {
+      const isBday = ev.type === 'cumpleanos';
+      const bg = isBday ? '#eef7ff' : '#f6f0ff';
+      const border = isBday ? '#cfe8ff' : '#e3d9f7';
+      const icon = isBday ? '🎧' : '🗂️';
+      const label = isBday ? 'Cumpleaños' : 'Aniversario';
+      html += `<div style="background:${bg};border:1px solid ${border};border-radius:var(--r2);padding:12px;">
+        <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;">${icon} ${label}</div>
+        <div style="font-size:14px;font-weight:600;margin-top:3px;">${ev.person.name}</div>
+        <div style="font-size:12px;color:var(--text2);margin-top:2px;">${ev.person.role||'—'} · ${ev.person.udn||'Sin UDN'}</div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  if (shipEvents.length) {
+    html += `<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#9a6a20;margin-bottom:10px;display:flex;align-items:center;gap:6px;">📦 Lunes de envío — preparar para la próxima semana</div>`;
+    html += `<div class="table-wrap">
+      <table>
+        <thead><tr><th>Estado</th><th>Nombre</th><th>Cargo</th><th>UDN</th><th>Evento</th><th>Producto</th><th>Fecha del evento</th><th></th></tr></thead>
+        <tbody>`;
+    shipEvents.forEach(ev => {
+      const skey = getShipStatusKey(ev.person.id, ev.type, ev.eventDateKey);
+      const status = CAL_SHIP_STATUS[skey] || 'pendiente';
+      const isBday = ev.type === 'cumpleanos';
+      const product = isBday ? '🎧 Audífonos' : '🗂️ Organizador';
+      const [ey,em,edd] = ev.eventDateKey.split('-').map(Number);
+      const eventDateLabel = new Date(ey,em-1,edd).toLocaleDateString('es-MX',{day:'numeric',month:'short'});
+      html += `<tr>
+        <td>
+          ${status === 'enviado'
+            ? `<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:var(--green2);color:var(--green)">✓ Enviado</span>`
+            : `<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:var(--amber2);color:var(--amber)">⏳ Pendiente</span>`}
+        </td>
+        <td><strong>${ev.person.name}</strong></td>
+        <td style="color:var(--text2)">${ev.person.role||'—'}</td>
+        <td style="color:var(--text2)">${ev.person.udn||'—'}</td>
+        <td>${isBday?'Cumpleaños':'Aniversario'}</td>
+        <td>${product}</td>
+        <td style="font-family:var(--mono);font-size:12.5px;">${eventDateLabel}</td>
+        <td>
+          ${status === 'enviado'
+            ? `<button class="btn btn-ghost btn-sm" onclick="toggleShipStatus('${skey}')" style="font-size:11px;color:var(--text3)">Deshacer</button>`
+            : `<button class="btn btn-ghost btn-sm" onclick="toggleShipStatus('${skey}')" style="font-size:11px;color:var(--green)">✓ Marcar enviado</button>`}
+        </td>
+      </tr>`;
+    });
+    html += `</tbody></table></div>`;
+  }
+
+  html += `</div>`;
+  el.innerHTML = html;
+}
+
+function toggleShipStatus(skey) {
+  CAL_SHIP_STATUS[skey] = (CAL_SHIP_STATUS[skey] === 'enviado') ? 'pendiente' : 'enviado';
+  saveCalShipStatus();
+  renderCalendario();
+}
 
 // ─── DEVOLUCIONES ─────────────────────────────────────────────────────────────
 let _pendingDevMovId = null;
