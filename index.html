@@ -4787,7 +4787,39 @@ function loadCalData() {
 function saveCalBirthdays()     { localStorage.setItem('unistock-cal-birthdays', JSON.stringify(CAL_BIRTHDAYS)); }
 function saveCalAnniversaries() { localStorage.setItem('unistock-cal-anniversaries', JSON.stringify(CAL_ANNIVERSARIES)); }
 function saveCalShipStatus()    { localStorage.setItem('unistock-cal-shipstatus', JSON.stringify(CAL_SHIP_STATUS)); }
+
+// One-time cleanup pass: collapses any pre-existing duplicate entries (same
+// person, same normalized name) caused by re-importing the same Excel before
+// the upsert fix was in place. Keeps the entry with the most complete data
+// (prefers one that has a udn/role over one that doesn't) and runs silently —
+// nothing for the person to trigger manually.
+function dedupeCalList(list) {
+  const byName = new Map();
+  list.forEach(entry => {
+    const key = normalizeName(entry.name);
+    const existing = byName.get(key);
+    if (!existing) { byName.set(key, entry); return; }
+    // Prefer the entry with more filled-in fields (udn/role/full_date)
+    const score = e => (e.udn?1:0) + (e.role?1:0) + (e.full_date?1:0);
+    if (score(entry) > score(existing)) byName.set(key, entry);
+  });
+  return Array.from(byName.values());
+}
+
+function dedupeCalData() {
+  const beforeB = CAL_BIRTHDAYS.length, beforeA = CAL_ANNIVERSARIES.length;
+  CAL_BIRTHDAYS     = dedupeCalList(CAL_BIRTHDAYS);
+  CAL_ANNIVERSARIES = dedupeCalList(CAL_ANNIVERSARIES);
+  const removed = (beforeB - CAL_BIRTHDAYS.length) + (beforeA - CAL_ANNIVERSARIES.length);
+  if (removed > 0) {
+    saveCalBirthdays();
+    saveCalAnniversaries();
+  }
+  return removed;
+}
+
 loadCalData();
+dedupeCalData();
 
 // Keeps the Calendario de Regalos lists in sync whenever a collaborator's
 // birthday/work-anniversary is set from the Colaboradores section, so the
@@ -5008,14 +5040,27 @@ async function confirmImport(kind) {
   const parsed = _calImportRows[kind];
   if (!parsed || !parsed.length) return;
 
-  // Save into the calendar module (unchanged behavior)
-  if (kind === 'cumpleanos') {
-    CAL_BIRTHDAYS = CAL_BIRTHDAYS.concat(parsed);
-    saveCalBirthdays();
-  } else {
-    CAL_ANNIVERSARIES = CAL_ANNIVERSARIES.concat(parsed);
-    saveCalAnniversaries();
-  }
+  // Upsert by normalized name into the calendar list — never blindly concat,
+  // so re-importing the same Excel (or an updated version of it) just updates
+  // the existing entries instead of creating duplicates.
+  const targetList = kind === 'cumpleanos' ? CAL_BIRTHDAYS : CAL_ANNIVERSARIES;
+  let added = 0, updated = 0;
+
+  parsed.forEach(row => {
+    const key = normalizeName(row.name);
+    const idx = targetList.findIndex(p => normalizeName(p.name) === key);
+    if (idx >= 0) {
+      // Keep the existing id, refresh the rest of the fields (date, role, udn may have changed)
+      targetList[idx] = { ...targetList[idx], role: row.role, udn: row.udn, date: row.date };
+      updated++;
+    } else {
+      targetList.push(row);
+      added++;
+    }
+  });
+
+  if (kind === 'cumpleanos') { CAL_BIRTHDAYS = targetList; saveCalBirthdays(); }
+  else { CAL_ANNIVERSARIES = targetList; saveCalAnniversaries(); }
 
   // Also try to match each imported row to an existing collaborator by name,
   // and update their birthday / work_anniversary field so it shows in Colaboradores.
@@ -5049,8 +5094,9 @@ async function confirmImport(kind) {
   renderCalendario();
   renderCollaborators();
 
-  let msg = `${parsed.length} registros importados al calendario`;
-  if (matched) msg += ` · ${matched} colaboradores actualizados`;
+  let msg = `${added} nuevo${added!==1?'s':''}`;
+  if (updated) msg += `, ${updated} actualizado${updated!==1?'s':''} (ya existían)`;
+  if (matched) msg += ` · ${matched} colaboradores vinculados`;
   toast(msg, 't-green');
 
   if (unmatched.length) {
@@ -5115,6 +5161,7 @@ function getShipStatusKey(personId, type, eventDateKey) {
 // ── RENDER CALENDAR ──
 function renderCalendario() {
   loadCalData();
+  dedupeCalData();
   updateNotifPermButton();
   document.getElementById('cal-month-label').textContent = MONTH_NAMES_ES[_calCurrentMonth] + ' ' + _calCurrentYear;
 
