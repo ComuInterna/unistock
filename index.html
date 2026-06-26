@@ -1904,7 +1904,7 @@ tbody tr[draggable] { cursor:grab; } tbody tr[draggable]:active { cursor:grabbin
 <div class="backdrop" id="m-import-cumple">
   <div class="modal modal-lg">
     <div class="modal-hd">
-      <div><div class="modal-title">Cargar cumpleaños</div><div class="modal-sub">Excel con columnas: Nombre, Cargo, UDN, Cumpleaños</div></div>
+      <div><div class="modal-title">Cargar cumpleaños</div><div class="modal-sub">Excel: Nombre, Cargo, UDN, Cumpleaños · vincula automáticamente con colaboradores existentes por nombre</div></div>
       <button class="modal-close" onclick="closeModal('m-import-cumple')"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <div style="border:1.5px dashed var(--border2);border-radius:var(--r2);padding:28px;text-align:center;margin-bottom:6px;cursor:pointer;" onclick="document.getElementById('cumple-file').click()" id="cumple-dropzone">
@@ -1925,7 +1925,7 @@ tbody tr[draggable] { cursor:grab; } tbody tr[draggable]:active { cursor:grabbin
 <div class="backdrop" id="m-import-aniv">
   <div class="modal modal-lg">
     <div class="modal-hd">
-      <div><div class="modal-title">Cargar aniversarios</div><div class="modal-sub">Excel con columnas: Nombre, Cargo, Fecha, UDN</div></div>
+      <div><div class="modal-title">Cargar aniversarios</div><div class="modal-sub">Excel: Nombre, Cargo, Fecha, UDN · vincula automáticamente con colaboradores existentes por nombre</div></div>
       <button class="modal-close" onclick="closeModal('m-import-aniv')"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <div style="border:1.5px dashed var(--border2);border-radius:var(--r2);padding:28px;text-align:center;margin-bottom:6px;cursor:pointer;" onclick="document.getElementById('aniv-file').click()" id="aniv-dropzone">
@@ -4846,6 +4846,38 @@ function parseDateToMD(val) {
   return null;
 }
 
+// Like parseDateToMD but returns a full 'YYYY-MM-DD' string when a year is present
+// in the source value, or null if only a day/month was given (no year info).
+// Used to populate the collaborator's birthday/work_anniversary date field,
+// which needs a real year for the <input type="date"> to display correctly.
+function parseDateFull(val) {
+  if (val == null || val === '') return null;
+  if (typeof val === 'number') {
+    const d = new Date(Math.round((val - 25569) * 86400 * 1000));
+    return d.getUTCFullYear() + '-' + String(d.getUTCMonth()+1).padStart(2,'0') + '-' + String(d.getUTCDate()).padStart(2,'0');
+  }
+  const s = String(val).trim();
+  let m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+  if (m) {
+    let day = parseInt(m[1]), mon = parseInt(m[2]), year = parseInt(m[3]);
+    if (mon > 12) { const t = day; day = mon; mon = t; }
+    if (year < 100) year += (year < 50 ? 2000 : 1900);
+    return year + '-' + String(mon).padStart(2,'0') + '-' + String(day).padStart(2,'0');
+  }
+  m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (m) return m[1] + '-' + String(parseInt(m[2])).padStart(2,'0') + '-' + String(parseInt(m[3])).padStart(2,'0');
+  const d = new Date(s);
+  if (!isNaN(d.getTime())) return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  return null;
+}
+
+// Normalizes a name for fuzzy matching: lowercase, strip accents, collapse spaces
+function normalizeName(s) {
+  return String(s||'').trim().toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ');
+}
+
 // ── EXCEL IMPORT ──
 async function handleImportFile(input, kind) {
   const file = input.files[0];
@@ -4906,7 +4938,8 @@ function processImportRows(rows, kind) {
       name,
       role: roleCol ? String(r[roleCol]||'').trim() : '',
       udn:  udnCol  ? String(r[udnCol]||'').trim()  : '',
-      date: md
+      date: md,
+      full_date: parseDateFull(r[dateCol])
     });
   });
 
@@ -4947,26 +4980,67 @@ function renderImportPreview(kind, parsed, errors, totalRows) {
   el.innerHTML = html;
 }
 
-function confirmImport(kind) {
+async function confirmImport(kind) {
   const parsed = _calImportRows[kind];
   if (!parsed || !parsed.length) return;
+
+  // Save into the calendar module (unchanged behavior)
   if (kind === 'cumpleanos') {
     CAL_BIRTHDAYS = CAL_BIRTHDAYS.concat(parsed);
     saveCalBirthdays();
+  } else {
+    CAL_ANNIVERSARIES = CAL_ANNIVERSARIES.concat(parsed);
+    saveCalAnniversaries();
+  }
+
+  // Also try to match each imported row to an existing collaborator by name,
+  // and update their birthday / work_anniversary field so it shows in Colaboradores.
+  const field = kind === 'cumpleanos' ? 'birthday' : 'work_anniversary';
+  let matched = 0, unmatched = [];
+
+  for (const row of parsed) {
+    if (!row.full_date) continue; // no year info — can't populate a real date field
+    const target = normalizeName(row.name);
+    const col = COLLS.find(c => normalizeName(c.name) === target);
+    if (!col) { unmatched.push(row.name); continue; }
+    try {
+      await dbUpdate('collaborators', col.id, { [field]: row.full_date });
+      if (CFG.mode === 'local') col[field] = row.full_date;
+      matched++;
+    } catch(e) { /* keep going even if one update fails */ }
+  }
+
+  if (kind === 'cumpleanos') {
     closeModal('m-import-cumple');
     document.getElementById('cumple-file').value = '';
     document.getElementById('cumple-preview').innerHTML = '';
     document.getElementById('cumple-confirm-btn').disabled = true;
   } else {
-    CAL_ANNIVERSARIES = CAL_ANNIVERSARIES.concat(parsed);
-    saveCalAnniversaries();
     closeModal('m-import-aniv');
     document.getElementById('aniv-file').value = '';
     document.getElementById('aniv-preview').innerHTML = '';
     document.getElementById('aniv-confirm-btn').disabled = true;
   }
-  toast(`${parsed.length} registros importados`, 't-green');
+
   renderCalendario();
+  renderCollaborators();
+
+  let msg = `${parsed.length} registros importados al calendario`;
+  if (matched) msg += ` · ${matched} colaboradores actualizados`;
+  toast(msg, 't-green');
+
+  if (unmatched.length) {
+    showUnmatchedNamesModal(unmatched, kind);
+  }
+}
+
+// Shows a simple toast-like summary (via alert-style modal reuse) listing names
+// that couldn't be matched to an existing collaborator, so the person can fix
+// typos in the Excel or in the Colaboradores list.
+function showUnmatchedNamesModal(names, kind) {
+  const label = kind === 'cumpleanos' ? 'cumpleaños' : 'aniversarios';
+  const preview = names.slice(0, 15).join(', ') + (names.length > 15 ? `, +${names.length-15} más` : '');
+  toast(`${names.length} nombre(s) de ${label} no coinciden con ningún colaborador: ${preview}`, 't-amber');
 }
 
 // ── SHIPPING LOGIC ──
