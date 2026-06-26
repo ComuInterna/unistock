@@ -1942,6 +1942,30 @@ tbody tr[draggable] { cursor:grab; } tbody tr[draggable]:active { cursor:grabbin
   </div>
 </div>
 
+<!-- Modal: Confirmar envío de regalo (registra salida real) -->
+<div class="backdrop" id="m-confirm-gift-ship">
+  <div class="modal">
+    <div class="modal-hd">
+      <div><div class="modal-title">Marcar como enviado</div><div class="modal-sub" id="gift-ship-sub">—</div></div>
+      <button class="modal-close" onclick="closeModal('m-confirm-gift-ship')"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:12px 14px;margin-bottom:16px;font-size:12.5px;color:var(--text2);line-height:1.5;">
+      Esto registrará una <strong>salida real</strong> en el inventario: se descontará 1 unidad del artículo seleccionado y quedará en el Historial.
+    </div>
+    <div class="form-grid">
+      <div class="fg full"><label>Artículo entregado *</label><div id="gift-ship-psel"></div></div>
+      <div class="fg full"><label>UDN / Sucursal *</label>
+        <select id="gift-ship-udn"><option value="">Selecciona UDN...</option></select>
+      </div>
+      <div class="fg full"><label>Comentario (opcional)</label><input type="text" id="gift-ship-comment" placeholder="Ej: Regalo de cumpleaños"></div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-secondary" onclick="closeModal('m-confirm-gift-ship')">Cancelar</button>
+      <button class="btn btn-accent" id="gift-ship-confirm-btn" onclick="confirmGiftShipment()">✓ Confirmar y registrar salida</button>
+    </div>
+  </div>
+</div>
+
 <!-- Toast container -->
 <div class="toasts" id="toasts"></div>
 
@@ -5308,11 +5332,121 @@ function renderDayDetail(ck, eventsByDate, shipByDate) {
   el.innerHTML = html;
 }
 
+// Stores the in-flight context while the "marcar enviado" modal is open
+let _pendingGiftShip = null;
+
 function toggleShipStatus(skey) {
-  CAL_SHIP_STATUS[skey] = (CAL_SHIP_STATUS[skey] === 'enviado') ? 'pendiente' : 'enviado';
-  saveCalShipStatus();
-  renderCalendario();
-  refreshNotifNavBadge();
+  const current = CAL_SHIP_STATUS[skey] || 'pendiente';
+
+  if (current === 'enviado') {
+    // Undo: revert to pendiente. We do NOT auto-delete the original salida movement —
+    // the person can remove it manually from Historial if it was a mistake, since
+    // a stock movement is a real inventory event that shouldn't disappear silently.
+    CAL_SHIP_STATUS[skey] = 'pendiente';
+    saveCalShipStatus();
+    renderCalendario();
+    refreshNotifNavBadge();
+    return;
+  }
+
+  // Marking as enviado: open the confirmation modal to pick the exact article + UDN
+  // so we can register a real salida movement against inventory.
+  const parts = skey.split(':'); // personId:type:eventDateKey
+  const personId = parts[0];
+  const evType   = parts[1];
+  const eventDateKey = parts[2];
+
+  // Find the underlying person/event data from the current calendar index
+  const idx = buildCalendarIndex(_calCurrentYear);
+  const idxPrev = buildCalendarIndex(_calCurrentYear - 1);
+  const idxNext = buildCalendarIndex(_calCurrentYear + 1);
+  let foundEvent = null;
+  [idx, idxPrev, idxNext].forEach(ix => {
+    Object.values(ix.shipByDate).forEach(list => {
+      list.forEach(ev => {
+        if (getShipStatusKey(ev.person.id, ev.type, ev.eventDateKey) === skey) foundEvent = ev;
+      });
+    });
+  });
+  if (!foundEvent) { toast('No se encontró el evento','t-red'); return; }
+
+  _pendingGiftShip = { skey, event: foundEvent };
+
+  const isBday = evType === 'cumpleanos';
+  const typeName = isBday ? 'Audífonos' : 'Organizador';
+  document.getElementById('gift-ship-sub').textContent =
+    `${foundEvent.person.name} · ${isBday ? 'Cumpleaños' : 'Aniversario'} · sugerido: ${typeName}`;
+  document.getElementById('gift-ship-comment').value =
+    isBday ? `Regalo de cumpleaños — ${foundEvent.person.name}` : `Regalo de aniversario — ${foundEvent.person.name}`;
+
+  // Populate UDN select, defaulting to the person's UDN if it matches one of the known UDNs
+  const udnSel = document.getElementById('gift-ship-udn');
+  udnSel.innerHTML = '<option value="">Selecciona UDN...</option>' +
+    UDN_LIST.map(u => `<option value="${u}" ${u===foundEvent.person.udn?'selected':''}>${u}</option>`).join('');
+
+  // Build the product selector, pre-filtered/sorted so the matching type (Audífonos/Organizador) shows first
+  buildGiftPSel(typeName);
+
+  openModal('m-confirm-gift-ship');
+}
+
+// A product selector like buildPSel, but pre-selects the first product whose
+// type name matches the suggested gift (Audífonos for birthdays, Organizador for anniversaries)
+function buildGiftPSel(suggestedTypeName) {
+  buildPSel('gift-ship-psel', p => { _pendingGiftShip.selectedProduct = p; });
+  const suggested = PRODS.find(p => {
+    const t = getType(p.type_id);
+    return t && t.name === suggestedTypeName && p.qty > 0;
+  });
+  if (suggested) {
+    setTimeout(() => choosePSel('gift-ship-psel', suggested.id), 0);
+  }
+}
+
+async function confirmGiftShipment() {
+  if (!_pendingGiftShip) return;
+  const p = _pendingGiftShip.selectedProduct;
+  const udn = document.getElementById('gift-ship-udn').value;
+  const comment = document.getElementById('gift-ship-comment').value.trim();
+  const ev = _pendingGiftShip.event;
+
+  if (!p) { toast('Selecciona el artículo entregado','t-red'); return; }
+  if (!udn) { toast('Selecciona la UDN','t-red'); return; }
+  if (p.qty < 1) { toast('Sin stock disponible para ese artículo','t-red'); return; }
+
+  try {
+    await dbUpdate('products', p.id, { qty: p.qty - 1 });
+    if (CFG.mode === 'local') p.qty -= 1;
+
+    await dbInsert('movements', {
+      type: 'salida',
+      product_id: p.id,
+      qty: 1,
+      date: new Date().toISOString().slice(0,10),
+      person: ev.person.name,
+      branch: udn,
+      comment: comment || (ev.type === 'cumpleanos' ? 'Regalo de cumpleaños' : 'Regalo de aniversario')
+    });
+    if (CFG.mode === 'local') {
+      MOVS.unshift({ id: uid(), type:'salida', product_id:p.id, qty:1,
+        date: new Date().toISOString().slice(0,10), person: ev.person.name, branch: udn,
+        comment: comment || (ev.type === 'cumpleanos' ? 'Regalo de cumpleaños' : 'Regalo de aniversario'),
+        created_at: new Date().toISOString() });
+    }
+
+    CAL_SHIP_STATUS[_pendingGiftShip.skey] = 'enviado';
+    saveCalShipStatus();
+
+    closeModal('m-confirm-gift-ship');
+    toast(`Salida registrada: ${getType(p.type_id)?.name||'Artículo'} → ${ev.person.name}`, 't-green');
+
+    _pendingGiftShip = null;
+    renderCalendario();
+    refreshNotifNavBadge();
+    renderRecentMoves('salida');
+  } catch(e) {
+    toast('Error: '+e.message, 't-red');
+  }
 }
 
 // ─── NOTIFICACIONES DE ESCRITORIO (Lunes de Envío) ────────────────────────────
