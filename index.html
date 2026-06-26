@@ -1500,10 +1500,20 @@ tbody tr[draggable] { cursor:grab; } tbody tr[draggable]:active { cursor:grabbin
       <div id="page-colaboradores" class="page">
         <div class="sh">
           <div><div class="sh-t">Colaboradores</div><div class="sh-s">Lista de personas que reciben uniformes</div></div>
-          <button class="btn btn-primary" onclick="openModal('m-new-collab')">
-            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Nuevo colaborador
-          </button>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-secondary" onclick="downloadCollabDateList('birthday')" title="Listado de cumpleaños ordenado por mes">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+              🎂 Descargar cumpleaños
+            </button>
+            <button class="btn btn-secondary" onclick="downloadCollabDateList('work_anniversary')" title="Listado de aniversarios ordenado por mes">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+              🏆 Descargar aniversarios
+            </button>
+            <button class="btn btn-primary" onclick="openModal('m-new-collab')">
+              <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Nuevo colaborador
+            </button>
+          </div>
         </div>
         <div class="filters" style="margin-bottom:16px;">
           <div style="position:relative;flex:1;min-width:180px;">
@@ -1792,6 +1802,8 @@ tbody tr[draggable] { cursor:grab; } tbody tr[draggable]:active { cursor:grabbin
           <option value="">Sin asignar</option>
         </select>
       </div>
+      <div class="fg"><label>Cumpleaños</label><input type="date" id="nc2-bday"></div>
+      <div class="fg"><label>Aniversario laboral</label><input type="date" id="nc2-anniv"></div>
     </div>
     <div class="modal-ft">
       <button class="btn btn-secondary" onclick="closeModal('m-new-collab')">Cancelar</button>
@@ -1817,6 +1829,8 @@ tbody tr[draggable] { cursor:grab; } tbody tr[draggable]:active { cursor:grabbin
           <option value="">Sin asignar</option>
         </select>
       </div>
+      <div class="fg"><label>Cumpleaños</label><input type="date" id="ec2-bday"></div>
+      <div class="fg"><label>Aniversario laboral</label><input type="date" id="ec2-anniv"></div>
     </div>
     <div class="modal-ft">
       <button class="btn btn-red btn-sm" onclick="deleteCollab()">Eliminar</button>
@@ -3748,13 +3762,20 @@ function renderCollaborators() {
   }
 
   el.innerHTML = `<table>
-    <thead><tr><th>Nombre</th><th>Departamento</th><th>UDN</th><th>Entregas</th><th></th></tr></thead>
+    <thead><tr><th>Nombre</th><th>Departamento</th><th>UDN</th><th>Fechas</th><th>Entregas</th><th></th></tr></thead>
     <tbody>${list.map(col => {
       const entregas = MOVS.filter(m => m.person === col.name && m.type === 'salida').length;
+      const bdayLbl  = col.birthday ? fmtDate(col.birthday) : '';
+      const annivLbl = col.work_anniversary ? fmtDate(col.work_anniversary) : '';
       return `<tr>
         <td><strong>${col.name}</strong></td>
         <td style="color:var(--text2)">${col.department||'<span style="color:var(--text3)">—</span>'}</td>
         <td><span style="font-size:12.5px;color:var(--text2)">${col.udn||'<span style="color:var(--text3)">—</span>'}</span></td>
+        <td style="font-size:11.5px;line-height:1.5;">
+          ${bdayLbl ? `<div style="color:var(--text2)">🎂 ${bdayLbl}</div>` : ''}
+          ${annivLbl ? `<div style="color:var(--text2)">🏆 ${annivLbl}</div>` : ''}
+          ${!bdayLbl && !annivLbl ? '<span style="color:var(--text3)">—</span>' : ''}
+        </td>
         <td><span class="badge badge-neutral" style="font-family:var(--mono)">${entregas}</span></td>
         <td style="display:flex;gap:5px">
           <button class="btn btn-secondary btn-sm" onclick="openEditCollab('${col.id}')">Editar</button>
@@ -3766,20 +3787,25 @@ function renderCollaborators() {
 }
 
 async function saveNewCollab() {
-  const name = document.getElementById('nc2-name').value.trim();
-  const dept = document.getElementById('nc2-dept').value.trim();
-  const udn  = document.getElementById('nc2-udn')?.value || '';
+  const name  = document.getElementById('nc2-name').value.trim();
+  const dept  = document.getElementById('nc2-dept').value.trim();
+  const udn   = document.getElementById('nc2-udn')?.value || '';
+  const bday  = document.getElementById('nc2-bday')?.value || '';
+  const anniv = document.getElementById('nc2-anniv')?.value || '';
   if (!name) { toast('Ingresa el nombre','t-red'); return; }
   if (COLLS.find(c => c.name.toLowerCase() === name.toLowerCase())) {
     toast('Ya existe un colaborador con ese nombre','t-red'); return;
   }
   try {
-    const row = await dbInsert('collaborators', { name, department: dept, udn: udn||null });
+    const row = await dbInsert('collaborators', { name, department: dept, udn: udn||null, birthday: bday||null, work_anniversary: anniv||null });
     if (CFG.mode==='local') COLLS.push(row);
+    syncCollabToCalendar(row.id || row.name, name, udn, bday, anniv);
     closeModal('m-new-collab');
     document.getElementById('nc2-name').value = '';
     document.getElementById('nc2-dept').value = '';
     if (document.getElementById('nc2-udn')) document.getElementById('nc2-udn').value = '';
+    document.getElementById('nc2-bday').value = '';
+    document.getElementById('nc2-anniv').value = '';
     renderCollaborators();
     toast('Colaborador "'+name+'" agregado','t-green');
   } catch(e) { toast('Error: '+e.message,'t-red'); }
@@ -3800,19 +3826,24 @@ function openEditCollab(id) {
   document.getElementById('ec2-name').value = col.name;
   document.getElementById('ec2-dept').value = col.department || '';
   if (udnSel) udnSel.value = col.udn || '';
+  document.getElementById('ec2-bday').value  = col.birthday || '';
+  document.getElementById('ec2-anniv').value = col.work_anniversary || '';
   openModal('m-edit-collab');
 }
 
 async function saveEditCollab() {
-  const id   = document.getElementById('ec2-id').value;
-  const name = document.getElementById('ec2-name').value.trim();
-  const dept = document.getElementById('ec2-dept').value.trim();
-  const udn  = document.getElementById('ec2-udn')?.value || '';
+  const id    = document.getElementById('ec2-id').value;
+  const name  = document.getElementById('ec2-name').value.trim();
+  const dept  = document.getElementById('ec2-dept').value.trim();
+  const udn   = document.getElementById('ec2-udn')?.value || '';
+  const bday  = document.getElementById('ec2-bday')?.value || '';
+  const anniv = document.getElementById('ec2-anniv')?.value || '';
   if (!name) { toast('Ingresa el nombre','t-red'); return; }
   try {
-    await dbUpdate('collaborators', id, { name, department: dept, udn: udn||null });
+    await dbUpdate('collaborators', id, { name, department: dept, udn: udn||null, birthday: bday||null, work_anniversary: anniv||null });
     const col = COLLS.find(c => c.id === id);
-    if (CFG.mode==='local' && col) { col.name = name; col.department = dept; col.udn = udn||null; }
+    if (CFG.mode==='local' && col) { col.name = name; col.department = dept; col.udn = udn||null; col.birthday = bday||null; col.work_anniversary = anniv||null; }
+    syncCollabToCalendar(id, name, udn, bday, anniv);
     closeModal('m-edit-collab');
     renderCollaborators();
     toast('Colaborador actualizado','t-green');
@@ -4622,6 +4653,42 @@ function downloadReport(tipo) {
   toast(`Descargando reporte de ${tipo}s (${list.length} registros)`,'t-green');
 }
 
+// ─── LISTADO DE CUMPLEAÑOS / ANIVERSARIOS ─────────────────────────────────────
+// Downloads a CSV of all collaborators that have the given date field set,
+// sorted chronologically by month then day (so e.g. all January birthdays
+// come first regardless of birth year, then February, etc.)
+function downloadCollabDateList(field) {
+  const isBday = field === 'birthday';
+  const list = COLLS.filter(c => c[field]);
+
+  if (!list.length) {
+    toast(`Ningún colaborador tiene ${isBday ? 'cumpleaños' : 'aniversario'} registrado`, 't-amber');
+    return;
+  }
+
+  // Sort by month then day, ignoring year
+  const sorted = [...list].sort((a, b) => {
+    const da = a[field].slice(5); // 'MM-DD'
+    const db = b[field].slice(5);
+    return da.localeCompare(db);
+  });
+
+  const MONTHS_ES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  const label = isBday ? 'Cumpleaños' : 'Aniversario Laboral';
+
+  let csv = `\uFEFFNombre completo,Unidad de Negocio,${label},Mes\n`;
+  sorted.forEach(c => {
+    const d = new Date(c[field] + 'T12:00:00');
+    const monthName = MONTHS_ES[d.getMonth()];
+    const dateLabel = d.toLocaleDateString('es-MX', { day:'2-digit', month:'long', year: isBday ? undefined : 'numeric' });
+    csv += `"${c.name}","${c.udn || c.department || ''}","${dateLabel}","${monthName}"\n`;
+  });
+
+  const fname = `unistock_${isBday ? 'cumpleanos' : 'aniversarios'}_${new Date().toISOString().slice(0,10)}.csv`;
+  dl(fname, csv);
+  toast(`Descargando listado de ${isBday ? 'cumpleaños' : 'aniversarios'} (${sorted.length} colaboradores)`, 't-green');
+}
+
 // ─── EXPORT ───────────────────────────────────────────────────────────────────
 function exportCSV() {
   let inv = '\uFEFFID,Categoría,Tipo,Género,Talla,Color,SKU,Stock,Alerta\n';
@@ -4697,6 +4764,31 @@ function saveCalBirthdays()     { localStorage.setItem('unistock-cal-birthdays',
 function saveCalAnniversaries() { localStorage.setItem('unistock-cal-anniversaries', JSON.stringify(CAL_ANNIVERSARIES)); }
 function saveCalShipStatus()    { localStorage.setItem('unistock-cal-shipstatus', JSON.stringify(CAL_SHIP_STATUS)); }
 loadCalData();
+
+// Keeps the Calendario de Regalos lists in sync whenever a collaborator's
+// birthday/work-anniversary is set from the Colaboradores section, so the
+// person doesn't need to also import an Excel for someone added one by one.
+// Uses the collaborator's own id so re-saving updates in place instead of duplicating.
+function syncCollabToCalendar(collabId, name, udn, bdayISO, annivISO) {
+  loadCalData();
+
+  function upsert(list, dateISO) {
+    const idx = list.findIndex(p => p.collab_id === collabId);
+    if (!dateISO) {
+      if (idx >= 0) list.splice(idx, 1); // date cleared — remove entry
+      return list;
+    }
+    const md = dateISO.slice(5); // 'YYYY-MM-DD' -> 'MM-DD'
+    const entry = { id: idx >= 0 ? list[idx].id : uid(), collab_id: collabId, name, role: '', udn: udn||'', date: md };
+    if (idx >= 0) list[idx] = entry; else list.push(entry);
+    return list;
+  }
+
+  CAL_BIRTHDAYS     = upsert(CAL_BIRTHDAYS, bdayISO);
+  CAL_ANNIVERSARIES = upsert(CAL_ANNIVERSARIES, annivISO);
+  saveCalBirthdays();
+  saveCalAnniversaries();
+}
 
 const MONTH_NAMES_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const WEEKDAY_NAMES_ES = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
