@@ -264,6 +264,11 @@ thead th {
   background:var(--surface2); border-bottom:1px solid var(--border); white-space:nowrap;
 }
 tbody td { padding:11px 14px; border-bottom:1px solid var(--border); font-size:13px; vertical-align:middle; }
+
+/* Colaboradores table: the "Fechas" column can have 2 lines (birthday + anniversary)
+   while other columns have 1 — align everything to the top so rows don't look staggered */
+#collab-table td { vertical-align:top; padding-top:13px; padding-bottom:13px; }
+#collab-table td:first-child, #collab-table td:nth-child(2), #collab-table td:nth-child(3) { padding-top:14px; }
 tbody tr:last-child td { border-bottom:none; }
 tbody tr:hover td { background:var(--bg); }
 .td-mono { font-family:var(--mono); font-size:12px; color:var(--text2); }
@@ -3795,15 +3800,17 @@ function renderCollaborators() {
         <td><strong>${col.name}</strong></td>
         <td style="color:var(--text2)">${col.department||'<span style="color:var(--text3)">—</span>'}</td>
         <td><span style="font-size:12.5px;color:var(--text2)">${col.udn||'<span style="color:var(--text3)">—</span>'}</span></td>
-        <td style="font-size:11.5px;line-height:1.5;">
+        <td style="font-size:11.5px;line-height:1.6;">
           ${bdayLbl ? `<div style="color:var(--text2)">🎂 ${bdayLbl}</div>` : ''}
           ${annivLbl ? `<div style="color:var(--text2)">🏆 ${annivLbl}</div>` : ''}
           ${!bdayLbl && !annivLbl ? '<span style="color:var(--text3)">—</span>' : ''}
         </td>
         <td><span class="badge badge-neutral" style="font-family:var(--mono)">${entregas}</span></td>
-        <td style="display:flex;gap:5px">
-          <button class="btn btn-secondary btn-sm" onclick="openEditCollab('${col.id}')">Editar</button>
-          <button class="btn btn-red btn-sm" onclick="deleteCollabById('${col.id}')">Eliminar</button>
+        <td>
+          <div style="display:flex;gap:5px;">
+            <button class="btn btn-secondary btn-sm" onclick="openEditCollab('${col.id}')">Editar</button>
+            <button class="btn btn-red btn-sm" onclick="deleteCollabById('${col.id}')">Eliminar</button>
+          </div>
         </td>
       </tr>`;
     }).join('')}</tbody>
