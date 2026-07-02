@@ -4787,12 +4787,63 @@ let _calSelectedDate = null;
 let _calImportRows = { cumpleanos: null, aniversario: null };
 
 function loadCalData() {
-  try { CAL_BIRTHDAYS     = JSON.parse(localStorage.getItem('unistock-cal-birthdays')||'[]'); } catch(e) { CAL_BIRTHDAYS = []; }
-  try { CAL_ANNIVERSARIES = JSON.parse(localStorage.getItem('unistock-cal-anniversaries')||'[]'); } catch(e) { CAL_ANNIVERSARIES = []; }
-  try { CAL_SHIP_STATUS   = JSON.parse(localStorage.getItem('unistock-cal-shipstatus')||'{}'); } catch(e) { CAL_SHIP_STATUS = {}; }
+  // Primary source: collaborators already loaded from Supabase (COLLS).
+  // These always reflect the current state of the database, so they
+  // survive browser cache clears, device switches, and month changes.
+  const fromColls = { birthdays: [], anniversaries: [] };
+  COLLS.forEach(col => {
+    if (col.birthday) {
+      fromColls.birthdays.push({
+        id: 'collab-' + col.id,
+        collab_id: col.id,
+        name: col.name,
+        role: col.department || '',
+        udn:  col.udn || '',
+        date: col.birthday.slice(5),        // 'YYYY-MM-DD' → 'MM-DD'
+        full_date: col.birthday
+      });
+    }
+    if (col.work_anniversary) {
+      fromColls.anniversaries.push({
+        id: 'collab-anniv-' + col.id,
+        collab_id: col.id,
+        name: col.name,
+        role: col.department || '',
+        udn:  col.udn || '',
+        date: col.work_anniversary.slice(5),
+        full_date: col.work_anniversary
+      });
+    }
+  });
+
+  // Secondary source: localStorage — entries imported via Excel that don't
+  // correspond to any collaborator (e.g. external people, future hires, etc.)
+  let localBdays = [], localAnnivs = [];
+  try { localBdays  = JSON.parse(localStorage.getItem('unistock-cal-birthdays')  || '[]'); } catch(e) {}
+  try { localAnnivs = JSON.parse(localStorage.getItem('unistock-cal-anniversaries') || '[]'); } catch(e) {}
+
+  // Merge: collab entries take precedence; only keep local entries whose name
+  // doesn't match any collaborator (to avoid showing stale duplicates from a
+  // prior import that has since been superseded by a collab field update).
+  const collabNames = new Set(COLLS.map(c => normalizeName(c.name)));
+  const extraBdays  = localBdays.filter(e  => !collabNames.has(normalizeName(e.name)));
+  const extraAnnivs = localAnnivs.filter(e => !collabNames.has(normalizeName(e.name)));
+
+  CAL_BIRTHDAYS     = fromColls.birthdays.concat(extraBdays);
+  CAL_ANNIVERSARIES = fromColls.anniversaries.concat(extraAnnivs);
+
+  try { CAL_SHIP_STATUS = JSON.parse(localStorage.getItem('unistock-cal-shipstatus') || '{}'); } catch(e) { CAL_SHIP_STATUS = {}; }
 }
-function saveCalBirthdays()     { localStorage.setItem('unistock-cal-birthdays', JSON.stringify(CAL_BIRTHDAYS)); }
-function saveCalAnniversaries() { localStorage.setItem('unistock-cal-anniversaries', JSON.stringify(CAL_ANNIVERSARIES)); }
+// Only persist entries that came from Excel imports and are NOT linked to a
+// collaborator — collaborator-linked entries are always rebuilt from COLLS/Supabase.
+function saveCalBirthdays() {
+  const extra = CAL_BIRTHDAYS.filter(e => !e.collab_id);
+  localStorage.setItem('unistock-cal-birthdays', JSON.stringify(extra));
+}
+function saveCalAnniversaries() {
+  const extra = CAL_ANNIVERSARIES.filter(e => !e.collab_id);
+  localStorage.setItem('unistock-cal-anniversaries', JSON.stringify(extra));
+}
 function saveCalShipStatus()    { localStorage.setItem('unistock-cal-shipstatus', JSON.stringify(CAL_SHIP_STATUS)); }
 
 // One-time cleanup pass: collapses any pre-existing duplicate entries (same
@@ -4825,8 +4876,11 @@ function dedupeCalData() {
   return removed;
 }
 
-loadCalData();
-dedupeCalData();
+// On initial script parse, COLLS isn't loaded yet from Supabase — just
+// restore the ship-status from localStorage; the full calendar lists
+// (birthdays + anniversaries) are built from COLLS inside loadCalData()
+// which is called by renderCalendario() after startApp() finishes loading.
+try { CAL_SHIP_STATUS = JSON.parse(localStorage.getItem('unistock-cal-shipstatus') || '{}'); } catch(e) {}
 
 // Keeps the Calendario de Regalos lists in sync whenever a collaborator's
 // birthday/work-anniversary is set from the Colaboradores section, so the
