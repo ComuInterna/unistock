@@ -355,6 +355,7 @@ function fmtDate(d) {
 (async function() {
   try {
     await loadFromSupabase(SUPABASE_URL, SUPABASE_KEY);
+    applyCycleFilter();
     populateCatFilter();
     updateHeroStats();
     applyFilters();
@@ -415,6 +416,12 @@ function populateCatFilter() {
     var o = document.createElement('option'); o.value = c.id; o.textContent = c.name;
     sel.appendChild(o);
   });
+}
+
+// Los artículos de ciclos cerrados quedan fuera de esta vista pública —
+// su stock está congelado y ya no forma parte del inventario vigente.
+function applyCycleFilter() {
+  PRODS = PRODS.filter(function(p) { return p.cycle_status !== 'cerrado'; });
 }
 
 function updateHeroStats() {

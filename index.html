@@ -1109,10 +1109,20 @@ tbody tr[draggable] { cursor:grab; } tbody tr[draggable]:active { cursor:grabbin
       <div id="page-inventario" class="page">
         <div class="sh">
           <div><div class="sh-t">Inventario</div><div class="sh-s">Gestiona referencias y stock · <span style="color:var(--accent)">arrastra</span> para reordenar</div></div>
-          <button class="btn btn-primary" onclick="openModal('m-new-product')">
-            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Nuevo artículo
-          </button>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-secondary" onclick="openRenewCycleModal()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 2v6h-6M3 12a9 9 0 0115-6.7L21 8M3 22v-6h6M21 12a9 9 0 01-15 6.7L3 16"/></svg>
+              Renovar artículos
+            </button>
+            <button class="btn btn-secondary" onclick="openCloseCycleModal()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+              Cerrar ciclo
+            </button>
+            <button class="btn btn-primary" onclick="openModal('m-new-product')">
+              <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Nuevo artículo
+            </button>
+          </div>
         </div>
         <div class="filters">
           <input type="text" placeholder="🔍 Buscar..." id="inv-q" oninput="renderInventario()">
@@ -1125,6 +1135,11 @@ tbody tr[draggable] { cursor:grab; } tbody tr[draggable]:active { cursor:grabbin
             <option value="">Todo el stock</option>
             <option value="low">Stock bajo</option>
             <option value="out">Sin stock</option>
+          </select>
+          <select id="inv-cycle" onchange="renderInventario()">
+            <option value="active">Solo activos (ciclo vigente)</option>
+            <option value="all">Todos (activos + cerrados)</option>
+            <option value="closed">Solo ciclos cerrados</option>
           </select>
         </div>
         <div class="table-wrap" id="inv-table">
@@ -1993,6 +2008,51 @@ tbody tr[draggable] { cursor:grab; } tbody tr[draggable]:active { cursor:grabbin
   </div>
 </div>
 
+<!-- Modal: Cerrar ciclo -->
+<div class="backdrop" id="m-close-cycle">
+  <div class="modal" style="max-width:580px">
+    <div class="modal-hd">
+      <div><div class="modal-title">Cerrar ciclo</div><div class="modal-sub">Congela el stock de los artículos seleccionados — dejan de admitir entradas o edición, pero conservan su historial y pueden seguir dando salidas hasta agotarse</div></div>
+      <button class="modal-close" onclick="closeModal('m-close-cycle')"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="form-grid">
+      <div class="fg full"><label>Nombre del ciclo que cierra</label><input type="text" id="cc-label" placeholder="Ej. Uniformes 2026"></div>
+      <div class="fg full"><label>Artículos a incluir</label>
+        <input type="text" id="cc-search" placeholder="🔍 Buscar..." oninput="renderCloseCycleList(this.value)" style="margin-bottom:8px">
+        <div id="cc-list" style="max-height:320px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--r)"></div>
+        <div id="cc-count" style="font-size:12px;color:var(--text3);margin-top:6px"></div>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-secondary" onclick="closeModal('m-close-cycle')">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmCloseCycle()">🔒 Cerrar ciclo</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Renovar artículos -->
+<div class="backdrop" id="m-renew-cycle">
+  <div class="modal" style="max-width:580px">
+    <div class="modal-hd">
+      <div><div class="modal-title">Renovar artículos</div><div class="modal-sub">Crea el artículo del ciclo nuevo a partir de uno cerrado (mismo tipo/talla/color/SKU base), con stock en 0 para capturar entradas</div></div>
+      <button class="modal-close" onclick="closeModal('m-renew-cycle')"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="form-grid">
+      <div class="fg full"><label>Ciclo cerrado de origen</label><select id="rc-source" onchange="renderRenewCycleList(document.getElementById('rc-search').value)"></select></div>
+      <div class="fg full"><label>Nombre del ciclo nuevo (opcional)</label><input type="text" id="rc-label" placeholder="Ej. Uniformes 2027 — déjalo vacío si no quieres etiquetarlo aún"></div>
+      <div class="fg full"><label>Artículos a renovar</label>
+        <input type="text" id="rc-search" placeholder="🔍 Buscar..." oninput="renderRenewCycleList(this.value)" style="margin-bottom:8px">
+        <div id="rc-list" style="max-height:320px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--r)"></div>
+        <div id="rc-count" style="font-size:12px;color:var(--text3);margin-top:6px"></div>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-secondary" onclick="closeModal('m-renew-cycle')">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmRenewCycle()">🔄 Renovar seleccionados</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal: Editar movimiento -->
 <div class="backdrop" id="m-edit-mov">
   <div class="modal modal-lg">
@@ -2505,6 +2565,23 @@ function getType(id)     { return TYPES.find(t=>t.id===id); }
 function getCat(id)      { return CATS.find(c=>c.id===id); }
 function getProd(id)     { return PRODS.find(p=>p.id===id); }
 
+// ─── CICLOS (cierre/renovación anual de artículos) ────────────────────────────
+// Un producto "cerrado" queda congelado: ya no admite entradas ni edición,
+// pero conserva su stock e historial para poder seguir dando salidas/entregas
+// hasta agotarlo. "Renovar" crea un producto NUEVO (mismo tipo/talla/color/SKU
+// base) para el ciclo activo, enlazado al anterior vía cycle_parent_id.
+function isClosedProduct(p) { return !!p && p.cycle_status === 'cerrado'; }
+function activeProds()      { return PRODS.filter(p => !isClosedProduct(p)); }
+function closedCycleLabels() {
+  const set = new Set();
+  PRODS.forEach(p => { if (isClosedProduct(p) && p.cycle_label) set.add(p.cycle_label); });
+  return [...set].sort();
+}
+function cycleBadge(p) {
+  if (!isClosedProduct(p)) return '';
+  return `<span class="badge" style="background:var(--text3);color:#fff;white-space:nowrap" title="Ciclo cerrado${p.cycle_label?': '+p.cycle_label:''} — stock congelado, solo admite salidas">🔒 ${p.cycle_label||'Cerrado'}</span>`;
+}
+
 function productLabel(p) {
   const t = getType(p.type_id);
   return `${t?.name||'?'} ${p.color} — ${p.size} (${p.gender})`;
@@ -2557,10 +2634,14 @@ function navToGroup(groupId) {
 
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
 function renderDashboard() {
-  const total  = PRODS.reduce((s,p)=>s+p.qty,0);
-  const low    = PRODS.filter(p=>p.qty>0 && p.qty<(p.low_stock_threshold||5)).length;
-  const out    = PRODS.filter(p=>p.qty===0).length;
-  const refs   = PRODS.length;
+  // Los artículos de ciclos cerrados quedan fuera del panorama activo (están
+  // congelados); siguen disponibles en Inventario con el filtro de ciclo y en
+  // Salidas para agotarlos.
+  const PRODS_ACTIVE = activeProds();
+  const total  = PRODS_ACTIVE.reduce((s,p)=>s+p.qty,0);
+  const low    = PRODS_ACTIVE.filter(p=>p.qty>0 && p.qty<(p.low_stock_threshold||5)).length;
+  const out    = PRODS_ACTIVE.filter(p=>p.qty===0).length;
+  const refs   = PRODS_ACTIVE.length;
 
   document.getElementById('summary-pills').innerHTML = `
     <div class="summary-pill"><div class="pill-icon">📦</div><div><div class="pill-val">${total}</div><div class="pill-lbl">Unidades totales</div></div></div>
@@ -2578,7 +2659,7 @@ function renderDashboard() {
   let html = '';
 
   filteredCats.forEach(cat => {
-    let prods = PRODS.filter(p => p.category_id === cat.id);
+    let prods = PRODS_ACTIVE.filter(p => p.category_id === cat.id);
     if (stF)  prods = prods.filter(p => stockClass(p) === stF);
     if (genF) prods = prods.filter(p => p.gender === genF);
     if (q)    prods = prods.filter(p => productLabel(p).toLowerCase().includes(q) || (p.sku||'').toLowerCase().includes(q));
@@ -2645,8 +2726,11 @@ function renderInventario() {
   const typF = document.getElementById('inv-type')?.value||'';
   const genF = document.getElementById('inv-gender')?.value||'';
   const stF  = document.getElementById('inv-stf')?.value||'';
+  const cycF = document.getElementById('inv-cycle')?.value||'active';
 
   let prods = PRODS.filter(p => {
+    if (cycF === 'active' && isClosedProduct(p)) return false;
+    if (cycF === 'closed' && !isClosedProduct(p)) return false;
     if (catF && p.category_id !== catF) return false;
     if (typF && p.type_id !== typF) return false;
     if (genF && p.gender !== genF) return false;
@@ -2662,7 +2746,7 @@ function renderInventario() {
   });
 
   // Apply persistent drag order (only when no filters active)
-  const isFiltered = q || catF || typF || genF || stF;
+  const isFiltered = q || catF || typF || genF || stF || (cycF && cycF !== 'active');
   if (!isFiltered) prods = getOrderedProds(prods);
 
   if (!prods.length) {
@@ -2690,10 +2774,12 @@ function renderInventario() {
               '<div class="inv-card-meta">Talla ' + p.size + ' · ' + (p.sku || 'Sin SKU') + '</div>',
             '</div>',
             '<div class="inv-card-right">',
-              stockPill(p),
+              (isClosedProduct(p) ? cycleBadge(p) : stockPill(p)),
               '<div class="inv-card-actions">',
-                '<button class="btn btn-secondary btn-sm" onclick="openEditStock(\''+pid+'\')">Stock</button>',
-                '<button class="btn btn-secondary btn-sm" onclick="openEditProduct(\''+pid+'\')">&#xB7;&#xB7;&#xB7;</button>',
+                (isClosedProduct(p)
+                  ? '<button class="btn btn-secondary btn-sm" onclick="openRenewCycleModal(\''+pid+'\')">Renovar</button>'
+                  : '<button class="btn btn-secondary btn-sm" onclick="openEditStock(\''+pid+'\')">Stock</button>' +
+                    '<button class="btn btn-secondary btn-sm" onclick="openEditProduct(\''+pid+'\')">&#xB7;&#xB7;&#xB7;</button>'),
               '</div>',
             '</div>',
           '</div>'
@@ -2706,11 +2792,12 @@ function renderInventario() {
       <table id="inv-sortable-table">
         <thead><tr>
           ${isDraggable ? '<th style="width:28px"></th>' : ''}
-          <th>Categoría</th><th>Tipo</th><th>Género</th><th>Talla</th><th>Color</th><th>SKU</th><th>Stock</th><th>Acciones</th>
+          <th>Categoría</th><th>Tipo</th><th>Género</th><th>Talla</th><th>Color</th><th>SKU</th><th>Stock</th><th>Ciclo</th><th>Acciones</th>
         </tr></thead>
         <tbody id="inv-tbody">${prods.map(p=>{
           const t=getType(p.type_id); const cc=getCat(p.category_id);
-          return `<tr draggable="${isDraggable}" data-id="${p.id}">
+          const closed = isClosedProduct(p);
+          return `<tr draggable="${isDraggable}" data-id="${p.id}" style="${closed?'opacity:.72':''}">
             ${isDraggable ? `<td><span class="drag-handle" title="Arrastrar para reordenar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="5" r="1" fill="currentColor"/><circle cx="9" cy="12" r="1" fill="currentColor"/><circle cx="9" cy="19" r="1" fill="currentColor"/><circle cx="15" cy="5" r="1" fill="currentColor"/><circle cx="15" cy="12" r="1" fill="currentColor"/><circle cx="15" cy="19" r="1" fill="currentColor"/></svg></span></td>` : ''}
             <td><span style="font-size:13px;display:inline-flex;align-items:center;gap:5px">${getCatIcon(cc?.icon||'', '16px')} ${cc?.name||'—'}</span></td>
             <td><strong>${t?.name||'—'}</strong></td>
@@ -2719,9 +2806,14 @@ function renderInventario() {
             <td>${p.color}</td>
             <td class="td-mono">${p.sku||'—'}</td>
             <td>${stockPill(p)}</td>
+            <td>${cycleBadge(p) || '<span style="font-size:11px;color:var(--text3)">Vigente</span>'}</td>
             <td style="display:flex;gap:5px;flex-wrap:wrap;">
-              <button class="btn btn-secondary btn-sm" onclick="openEditStock('${p.id}')">Stock</button>
-              <button class="btn btn-secondary btn-sm" onclick="openEditProduct('${p.id}')">Editar</button>
+              ${closed ? `
+                <button class="btn btn-secondary btn-sm" onclick="openRenewCycleModal('${p.id}')">🔄 Renovar</button>
+              ` : `
+                <button class="btn btn-secondary btn-sm" onclick="openEditStock('${p.id}')">Stock</button>
+                <button class="btn btn-secondary btn-sm" onclick="openEditProduct('${p.id}')">Editar</button>
+              `}
               ${p.sku ? `<button class="btn btn-secondary btn-sm" onclick="copyNFCUrl('${p.sku}')" title="Copiar URL para etiqueta NFC" style="font-family:var(--mono);letter-spacing:.03em">NFC</button>` : '<span style="font-size:11px;color:var(--text3);padding:0 4px">Sin SKU</span>'}
             </td>
           </tr>`;
@@ -2792,6 +2884,7 @@ async function doEntrada() {
   if (!selEntrada) { toast('Selecciona un producto','t-red'); return; }
   const qty = parseInt(document.getElementById('e-qty').value);
   if (!qty||qty<1) { toast('Cantidad inválida','t-red'); return; }
+  if (isClosedProduct(getProd(selEntrada.id))) { toast('Este artículo es de un ciclo cerrado y no admite entradas. Usa "Renovar artículos" en Inventario.','t-red'); return; }
 
   try {
     const prod = getProd(selEntrada.id);
@@ -2851,7 +2944,7 @@ function renderSalidas() {
   buildPSel('salida-psel', p => {
     selSalida = p;
     checkSalidaStock();
-  });
+  }, true);
   // Populate UDN dropdown
   const sel = document.getElementById('s-branch');
   if (sel) {
@@ -3064,7 +3157,7 @@ function clearSalida() {
   document.getElementById('salida-stock-alert').innerHTML = '';
   document.getElementById('btn-salida-confirm').disabled = false;
   renderCollabChips();
-  buildPSel('salida-psel', p => { selSalida = p; checkSalidaStock(); });
+  buildPSel('salida-psel', p => { selSalida = p; checkSalidaStock(); }, true);
 }
 
 // ─── RECENT MOVES ────────────────────────────────────────────────────────────
@@ -3597,9 +3690,123 @@ async function saveNewProduct() {
   } catch(e) { toast('Error: '+e.message,'t-red'); }
 }
 
+// ─── CERRAR CICLO ───────────────────────────────────────────────────────────
+let _ccSelected = new Set();
+function openCloseCycleModal() {
+  _ccSelected = new Set();
+  document.getElementById('cc-label').value = '';
+  document.getElementById('cc-search').value = '';
+  renderCloseCycleList('');
+  openModal('m-close-cycle');
+}
+function renderCloseCycleList(q) {
+  const ql = (q||'').toLowerCase();
+  const prods = activeProds().filter(p => {
+    const t = getType(p.type_id); const cc = getCat(p.category_id);
+    const str = [t?.name,p.color,p.size,p.gender,p.sku,cc?.name].join(' ').toLowerCase();
+    return !ql || str.includes(ql);
+  });
+  const el = document.getElementById('cc-list');
+  el.innerHTML = prods.length ? prods.map(p => {
+    const t = getType(p.type_id);
+    const checked = _ccSelected.has(p.id);
+    return `<label style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--border);cursor:pointer;font-size:13px">
+      <input type="checkbox" ${checked?'checked':''} onchange="toggleCCProd('${p.id}')">
+      <span style="flex:1"><strong>${t?.name||'?'}</strong> — ${p.color} · Talla ${p.size}${p.sku?' · '+p.sku:''} · ${stockPill(p)}</span>
+    </label>`;
+  }).join('') : '<div class="psel-empty">Sin resultados</div>';
+  document.getElementById('cc-count').textContent = `${_ccSelected.size} artículo(s) seleccionado(s)`;
+}
+function toggleCCProd(id) {
+  if (_ccSelected.has(id)) _ccSelected.delete(id); else _ccSelected.add(id);
+  renderCloseCycleList(document.getElementById('cc-search').value);
+}
+async function confirmCloseCycle() {
+  const label = document.getElementById('cc-label').value.trim();
+  if (!label) { toast('Dale un nombre al ciclo que cierras (ej. "Uniformes 2026")','t-red'); return; }
+  if (!_ccSelected.size) { toast('Selecciona al menos un artículo','t-red'); return; }
+  try {
+    const now = new Date().toISOString();
+    for (const id of _ccSelected) {
+      await dbUpdate('products', id, { cycle_status:'cerrado', cycle_label:label, cycle_closed_at:now });
+      if (CFG.mode==='local') { const p = getProd(id); if (p) Object.assign(p, { cycle_status:'cerrado', cycle_label:label, cycle_closed_at:now }); }
+    }
+    const n = _ccSelected.size;
+    closeModal('m-close-cycle');
+    toast(`Ciclo "${label}" cerrado — ${n} artículo(s) congelado(s)`,'t-green');
+    renderInventario(); renderDashboard();
+  } catch(e) { toast('Error: '+e.message,'t-red'); }
+}
+
+// ─── RENOVAR ARTÍCULOS (abrir ciclo nuevo) ──────────────────────────────────
+let _rcSelected = new Set();
+function openRenewCycleModal(preselectProductId) {
+  const labels = closedCycleLabels();
+  if (!labels.length) { toast('Todavía no hay ciclos cerrados. Usa "Cerrar ciclo" primero.','t-red'); return; }
+  let defaultLabel = labels[labels.length-1];
+  if (preselectProductId) { const p = getProd(preselectProductId); if (p && p.cycle_label) defaultLabel = p.cycle_label; }
+  document.getElementById('rc-source').innerHTML =
+    labels.map(l => `<option value="${l}" ${l===defaultLabel?'selected':''}>${l}</option>`).join('');
+  document.getElementById('rc-label').value = '';
+  document.getElementById('rc-search').value = '';
+  _rcSelected = new Set();
+  if (preselectProductId) _rcSelected.add(preselectProductId);
+  renderRenewCycleList('');
+  openModal('m-renew-cycle');
+}
+function renderRenewCycleList(q) {
+  const ql = (q||'').toLowerCase();
+  const sourceLabel = document.getElementById('rc-source').value;
+  const prods = PRODS.filter(p => isClosedProduct(p) && p.cycle_label === sourceLabel).filter(p => {
+    const t = getType(p.type_id); const cc = getCat(p.category_id);
+    const str = [t?.name,p.color,p.size,p.gender,p.sku,cc?.name].join(' ').toLowerCase();
+    return !ql || str.includes(ql);
+  });
+  const el = document.getElementById('rc-list');
+  el.innerHTML = prods.length ? prods.map(p => {
+    const t = getType(p.type_id);
+    const checked = _rcSelected.has(p.id);
+    const alreadyRenewed = PRODS.some(x => x.cycle_parent_id === p.id);
+    return `<label style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--border);cursor:pointer;font-size:13px;${alreadyRenewed?'opacity:.55':''}">
+      <input type="checkbox" ${checked?'checked':''} onchange="toggleRCProd('${p.id}')">
+      <span style="flex:1"><strong>${t?.name||'?'}</strong> — ${p.color} · Talla ${p.size}${p.sku?' · '+p.sku:''} · Stock congelado: ${p.qty}${alreadyRenewed?' · <span style="color:var(--text3)">ya renovado antes</span>':''}</span>
+    </label>`;
+  }).join('') : '<div class="psel-empty">Sin artículos en este ciclo</div>';
+  document.getElementById('rc-count').textContent = `${_rcSelected.size} artículo(s) seleccionado(s) para renovar`;
+}
+function toggleRCProd(id) {
+  if (_rcSelected.has(id)) _rcSelected.delete(id); else _rcSelected.add(id);
+  renderRenewCycleList(document.getElementById('rc-search').value);
+}
+async function confirmRenewCycle() {
+  if (!_rcSelected.size) { toast('Selecciona al menos un artículo a renovar','t-red'); return; }
+  const newLabel = document.getElementById('rc-label').value.trim() || null;
+  try {
+    let created = 0;
+    for (const id of _rcSelected) {
+      const old = getProd(id);
+      if (!old) continue;
+      const sku = old.sku ? generateUniqueSKU(old.sku.toUpperCase()) : '';
+      const row = await dbInsert('products', {
+        category_id: old.category_id, type_id: old.type_id, gender: old.gender,
+        size: old.size, color: old.color, sku, qty: 0,
+        low_stock_threshold: old.low_stock_threshold || 5,
+        group_id: old.group_id || null, group_type: old.group_type || null,
+        cycle_parent_id: old.id, cycle_label: newLabel, cycle_status: 'activo'
+      });
+      if (CFG.mode==='local') PRODS.push(row);
+      created++;
+    }
+    closeModal('m-renew-cycle');
+    toast(`${created} artículo(s) renovado(s) — stock en 0, listos para capturar entradas`,'t-green');
+    renderInventario(); renderDashboard(); populateFilterSelects();
+  } catch(e) { toast('Error: '+e.message,'t-red'); }
+}
+
 // ─── EDIT PRODUCT ─────────────────────────────────────────────────────────────
 function openEditProduct(id) {
   const p = getProd(id);
+  if (isClosedProduct(p)) { toast('Este artículo pertenece a un ciclo cerrado — está congelado. Usa "Renovar" para crear la versión del ciclo nuevo.','t-red'); return; }
   document.getElementById('ep-id').value    = p.id;
   document.getElementById('ep-sub').textContent = productLabel(p);
   document.getElementById('ep-size').value  = p.size;
@@ -3652,6 +3859,7 @@ async function deleteProduct() {
 // ─── QUICK STOCK ──────────────────────────────────────────────────────────────
 function openEditStock(id) {
   const p = getProd(id);
+  if (isClosedProduct(p)) { toast('Este artículo pertenece a un ciclo cerrado — su stock quedó congelado.','t-red'); return; }
   document.getElementById('es-id').value  = id;
   document.getElementById('es-sub').textContent = productLabel(p);
   document.getElementById('es-qty').value = p.qty;
@@ -3683,7 +3891,12 @@ async function saveQuickStock() {
 }
 
 // ─── PRODUCT SELECTOR WIDGET ──────────────────────────────────────────────────
-function buildPSel(containerId, onSelect) {
+// includeClosed: pass true for selectors used to register SALIDAS/entregas
+// (Salidas, NFC, edición de movimientos, asignación a sucursal, envío de
+// regalos) so items de ciclo cerrado puedan seguir agotándose. Déjalo en
+// false (default) para ENTRADAS y cualquier flujo de "qué comprar/reabastecer",
+// donde un artículo congelado no debe aparecer.
+function buildPSel(containerId, onSelect, includeClosed) {
   const container = document.getElementById(containerId);
   if (!container) return;
   container.innerHTML = `
@@ -3698,6 +3911,7 @@ function buildPSel(containerId, onSelect) {
       </div>
     </div>`;
   container._cb = onSelect;
+  container._includeClosed = !!includeClosed;
   renderPSelOpts(containerId, '');
   document.addEventListener('click', function hdl(e) {
     const root = document.getElementById(containerId+'-root');
@@ -3721,12 +3935,14 @@ function filterPSel(id, q) { renderPSelOpts(id, q); }
 function renderPSelOpts(id, q) {
   const el = document.getElementById(id+'-opts');
   if (!el) return;
+  const includeClosed = !!document.getElementById(id)?._includeClosed;
   const ql = q.toLowerCase();
   // Group by category
   let html = '';
   CATS.forEach(cat => {
     const prods = PRODS.filter(p => {
       if (p.category_id !== cat.id) return false;
+      if (!includeClosed && isClosedProduct(p)) return false;
       const t = getType(p.type_id);
       const s = [t?.name, p.color, p.size, p.gender, p.sku||''].join(' ').toLowerCase();
       return !ql || s.includes(ql);
@@ -3738,7 +3954,7 @@ function renderPSelOpts(id, q) {
       const sc = stockClass(p);
       return `<div class="psel-opt" onclick="choosePSel('${id}','${p.id}')">
         <div class="psel-opt-name">${t?.name||'?'} — ${p.color} <span style="color:var(--text3)">${p.gender}</span></div>
-        <div class="psel-opt-meta">Talla: ${p.size}${p.sku?' · '+p.sku:''} · ${stockPill(p)}</div>
+        <div class="psel-opt-meta">Talla: ${p.size}${p.sku?' · '+p.sku:''} · ${stockPill(p)}${isClosedProduct(p)?' · '+cycleBadge(p):''}</div>
       </div>`;
     }).join('');
   });
@@ -5608,7 +5824,7 @@ function toggleShipStatus(skey) {
 // article for this event type (see GIFT_DEFAULTS), or falls back to the
 // first product whose type name matches the suggested gift.
 function buildGiftPSel(suggestedTypeName, evType) {
-  buildPSel('gift-ship-psel', p => { _pendingGiftShip.selectedProduct = p; });
+  buildPSel('gift-ship-psel', p => { _pendingGiftShip.selectedProduct = p; }, true);
   const defaultId = GIFT_DEFAULTS[evType];
   let suggested = defaultId ? getProd(defaultId) : null;
   if (!suggested) {
@@ -5861,7 +6077,7 @@ function openEditMovModal(movId) {
     `${typeLabel.charAt(0).toUpperCase()+typeLabel.slice(1)} · ${t?.name||'?'} ${p?.color||''} · ${p?.size||''} · ${fmtDate(m.date)}`;
 
   // Product selector, pre-selected with current product
-  buildPSel('em-psel', prod => { document.getElementById('em-psel')._selectedProd = prod; });
+  buildPSel('em-psel', prod => { document.getElementById('em-psel')._selectedProd = prod; }, true);
   if (p) setTimeout(() => choosePSel('em-psel', p.id), 0);
 
   openModal('m-edit-mov');
@@ -6462,7 +6678,7 @@ function openModal_sucursalItem() {
     });
   }
   if (!document.getElementById('si-prod-sel')._built) {
-    buildPSel('si-prod-sel', p => {});
+    buildPSel('si-prod-sel', p => {}, true);
     document.getElementById('si-prod-sel')._built = true;
   }
 }

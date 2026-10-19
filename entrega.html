@@ -474,6 +474,14 @@ body {
       </div>
     </div>
 
+    <!-- Closed-cycle warning (entrada disabled) -->
+    <div id="cycle-closed-msg" style="display:none">
+      <div class="no-stock-alert">
+        <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+        <div><strong>Artículo de ciclo cerrado</strong><br>Su stock quedó congelado y ya no admite entradas. Solo puedes registrar <strong>salidas</strong> hasta agotarlo.</div>
+      </div>
+    </div>
+
     <!-- Form fields -->
     <div id="form-fields">
       <div class="form-section-title" id="form-section-lbl">Datos de entrega</div>
@@ -754,6 +762,10 @@ function renderProductCard(p) {
 
 // ── MODE TOGGLE ──
 function setMode(mode) {
+  if (mode === 'entrada' && currentProduct && currentProduct.cycle_status === 'cerrado') {
+    showToast('Este artículo es de un ciclo cerrado — no admite entradas, solo entregas del stock restante');
+    return;
+  }
   currentMode = mode;
   updateModeUI();
 }
@@ -762,10 +774,14 @@ function updateModeUI() {
   var isSal = currentMode === 'salida';
   var p = currentProduct;
   var noStock = p && p.qty === 0;
+  var isClosedCycle = p && p.cycle_status === 'cerrado';
 
   // Mode buttons
   document.getElementById('mode-btn-salida').className  = 'mode-btn' + (isSal ? ' active-salida' : '');
   document.getElementById('mode-btn-entrada').className = 'mode-btn' + (!isSal ? ' active-entrada' : '');
+  document.getElementById('mode-btn-entrada').style.opacity = isClosedCycle ? '0.4' : '';
+  document.getElementById('mode-btn-entrada').style.cursor  = isClosedCycle ? 'not-allowed' : '';
+  document.getElementById('cycle-closed-msg').style.display = isClosedCycle ? 'block' : 'none';
 
   // No-stock message only relevant for salida
   document.getElementById('no-stock-msg').style.display  = (isSal && noStock) ? 'block' : 'none';
