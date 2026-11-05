@@ -2026,7 +2026,7 @@ tbody tr[draggable] { cursor:grab; } tbody tr[draggable]:active { cursor:grabbin
     </div>
     <div class="modal-ft" style="flex-wrap:wrap">
       <button class="btn btn-secondary" onclick="closeModal('m-mass-delivery')">Cancelar</button>
-      <button class="btn btn-secondary" id="md-btn-formats" onclick="runMassDelivery(false)" title="Descarga los formatos de todo el mes sin tocar el stock">📄 Solo generar formatos</button>
+      <button class="btn btn-secondary" id="md-btn-formats" onclick="runMassDelivery(false)" title="Descarga los formatos solo de las entregas pendientes, sin tocar el stock">📄 Solo generar formatos</button>
       <button class="btn btn-primary" id="md-btn-register" onclick="runMassDelivery(true)">✓ Registrar entrega y generar formatos</button>
     </div>
   </div>
@@ -5969,7 +5969,7 @@ function openMassDeliveryModal() {
   openModal('m-mass-delivery');
 }
 
-// includeSent=false → solo pendientes (lo que se registrará); true → todos los del mes
+// includeSent=false → solo pendientes (lo único que entra a formatos y al descuento de stock)
 function buildMassPlan(month, year, includeSent) {
   const map = {}, noUdn = [];
   [['cumpleanos', CAL_BIRTHDAYS], ['aniversario', CAL_ANNIVERSARIES]].forEach(([type, list]) => {
@@ -6038,7 +6038,7 @@ function renderMassDeliveryPreview() {
       <thead><tr style="background:var(--bg3,#f3f4f6);text-align:left"><th style="padding:8px 10px">Unidad de negocio</th><th style="padding:8px 6px;text-align:center">🎂 Cumpleaños</th><th style="padding:8px 6px;text-align:center">🏆 Aniversarios</th><th style="padding:8px 10px;text-align:center">Total</th></tr></thead><tbody>` +
       pending.groups.map(g => `<tr style="border-top:1px solid var(--border)"><td style="padding:7px 10px"><strong>${g.udn}</strong></td><td style="text-align:center">${g.cumpleanos.length}</td><td style="text-align:center">${g.aniversario.length}</td><td style="text-align:center"><strong>${g.cumpleanos.length + g.aniversario.length}</strong></td></tr>`).join('') +
       `</tbody></table></div>
-      <div style="font-size:12px;color:var(--text3);margin-top:6px">${pending.groups.length} formato(s) · ${total} obsequio(s) en total${alreadySent ? ` · ${alreadySent} ya enviado(s) no se incluyen al registrar` : ''}</div>`;
+      <div style="font-size:12px;color:var(--text3);margin-top:6px">${pending.groups.length} formato(s) · ${total} obsequio(s) en total${alreadySent ? ` · ${alreadySent} ya enviado(s): no se incluyen en formatos ni en el descuento` : ''}</div>`;
   }
   if (pending.noUdn.length) {
     html += `<div style="margin-top:10px;padding:9px 12px;border-radius:8px;background:#fff4e5;color:#8a5200;font-size:12.5px">⚠️ ${pending.noUdn.length} persona(s) sin unidad de negocio asignada, no se incluyen: ${[...new Set(pending.noUdn.map(e => e.person.name))].join(', ')}. Asígnales UDN en Colaboradores.</div>`;
@@ -6048,7 +6048,7 @@ function renderMassDeliveryPreview() {
   });
   box.innerHTML = html;
   document.getElementById('md-btn-register').disabled = !pending.groups.length || needs.problems.length > 0;
-  document.getElementById('md-btn-formats').disabled  = !all.groups.length;
+  document.getElementById('md-btn-formats').disabled  = !pending.groups.length;
 }
 
 // ── PDF ────────────────────────────────────────────────────────────────────
@@ -6159,11 +6159,11 @@ async function generateDeliveryFormatsZip(plan) {
   return zip.generateAsync({ type: 'blob' });
 }
 
-// register=false → solo formatos (incluye todos los del mes, sin tocar stock)
+// register=false → solo formatos de los pendientes (sin tocar stock)
 // register=true  → descuenta stock, registra salidas, marca "enviado" y genera formatos
 async function runMassDelivery(register) {
   const { month, year } = _massSel();
-  const plan = buildMassPlan(month, year, !register);
+  const plan = buildMassPlan(month, year, false);   // siempre solo pendientes
   if (!plan.groups.length) { toast('No hay entregas para ese mes', 't-red'); return; }
   const needs = register ? _massNeeds(plan) : null;
   if (register && needs.problems.length) { toast(needs.problems[0], 't-red'); return; }
