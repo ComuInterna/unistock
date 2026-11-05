@@ -1355,6 +1355,10 @@ tbody tr[draggable] { cursor:grab; } tbody tr[draggable]:active { cursor:grabbin
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 18 15 15"/></svg>
               Generar Formatos de Entrega
             </button>
+            <button class="btn btn-secondary" onclick="openLabelsModal()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+              Descargar Etiquetas
+            </button>
           </div>
         </div>
 
@@ -2028,6 +2032,25 @@ tbody tr[draggable] { cursor:grab; } tbody tr[draggable]:active { cursor:grabbin
       <button class="btn btn-secondary" onclick="closeModal('m-mass-delivery')">Cancelar</button>
       <button class="btn btn-secondary" id="md-btn-formats" onclick="runMassDelivery(false)" title="Descarga los formatos solo de las entregas pendientes, sin tocar el stock">📄 Solo generar formatos</button>
       <button class="btn btn-primary" id="md-btn-register" onclick="runMassDelivery(true)">✓ Registrar entrega y generar formatos</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Etiquetas 5x2 cm -->
+<div class="backdrop" id="m-labels">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-hd">
+      <div><div class="modal-title">Descargar etiquetas</div><div class="modal-sub">PDF con etiquetas de 5 × 2 cm (nombre, UDN, evento y fecha) de quienes cumplen años o aniversario en el mes</div></div>
+      <button class="modal-close" onclick="closeModal('m-labels')"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="form-grid">
+      <div class="fg"><label>Mes</label><select id="lb-month" onchange="renderLabelsPreview()"></select></div>
+      <div class="fg"><label>Año</label><input type="number" id="lb-year" min="2024" max="2100" oninput="renderLabelsPreview()"></div>
+      <div class="fg full"><div id="lb-preview"></div></div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-secondary" onclick="closeModal('m-labels')">Cancelar</button>
+      <button class="btn btn-primary" id="lb-btn" onclick="downloadLabels()">⬇ Descargar Etiquetas</button>
     </div>
   </div>
 </div>
@@ -4195,6 +4218,8 @@ async function deleteCollabById(id) {
   try {
     await dbDelete('collaborators', id);
     if (CFG.mode==='local') { const i=COLLS.findIndex(c=>c.id===id); if(i>=0) COLLS.splice(i,1); }
+    purgeCollabFromCalendar(col);          // fuera del calendario; el historial de entregas se conserva
+    if (SB) await loadAllData();
     renderCollaborators();
     toast('Colaborador eliminado');
   } catch(e) { toast('Error: '+e.message,'t-red'); }
@@ -5088,6 +5113,16 @@ let _calCurrentYear  = new Date().getFullYear();
 let _calSelectedDate = null;
 let _calImportRows = { cumpleanos: null, aniversario: null };
 
+// Aniversario laboral: solo aplica a partir de que la persona cumple su primer
+// año. Alguien que ingresó en noviembre de 2026 aparece hasta noviembre de 2027.
+// `year` es el año en que ocurre el aniversario. Sin año de ingreso (entradas de
+// Excel sin fecha completa) no se puede verificar, así que se deja pasar.
+function anniversaryEligible(person, year) {
+  const fd = person && person.full_date;
+  if (!fd || !/^\d{4}-\d{2}-\d{2}/.test(fd)) return true;
+  return year - parseInt(fd.slice(0, 4), 10) >= 1;
+}
+
 function loadCalData() {
   // Primary source: collaborators already loaded from Supabase (COLLS).
   // These always reflect the current state of the database, so they
@@ -5133,6 +5168,14 @@ function loadCalData() {
 
   CAL_BIRTHDAYS     = fromColls.birthdays.concat(extraBdays);
   CAL_ANNIVERSARIES = fromColls.anniversaries.concat(extraAnnivs);
+
+  // Las entradas de Excel que coinciden con un colaborador ya están cubiertas
+  // por COLLS: se quitan del almacenamiento para que no "resuciten" si luego
+  // ese colaborador se da de baja.
+  try {
+    if (COLLS.length && extraBdays.length  !== localBdays.length)  localStorage.setItem('unistock-cal-birthdays',     JSON.stringify(extraBdays));
+    if (COLLS.length && extraAnnivs.length !== localAnnivs.length) localStorage.setItem('unistock-cal-anniversaries', JSON.stringify(extraAnnivs));
+  } catch(e) {}
 
   try { CAL_SHIP_STATUS = JSON.parse(localStorage.getItem('unistock-cal-shipstatus') || '{}'); } catch(e) { CAL_SHIP_STATUS = {}; }
 }
@@ -5188,6 +5231,23 @@ try { CAL_SHIP_STATUS = JSON.parse(localStorage.getItem('unistock-cal-shipstatus
 // birthday/work-anniversary is set from the Colaboradores section, so the
 // person doesn't need to also import an Excel for someone added one by one.
 // Uses the collaborator's own id so re-saving updates in place instead of duplicating.
+// Baja de un colaborador: deja de aparecer en el calendario. NO toca el
+// historial de entregas (movements) ni el estatus de envíos (CAL_SHIP_STATUS).
+function purgeCollabFromCalendar(col) {
+  if (!col) return;
+  const nm = normalizeName(col.name);
+  const keep = e => e.collab_id !== col.id && normalizeName(e.name) !== nm;
+  const clean = key => {
+    let arr = [];
+    try { arr = JSON.parse(localStorage.getItem(key) || '[]'); } catch(e) {}
+    try { localStorage.setItem(key, JSON.stringify(arr.filter(keep))); } catch(e) {}
+  };
+  clean('unistock-cal-birthdays');
+  clean('unistock-cal-anniversaries');
+  CAL_BIRTHDAYS     = CAL_BIRTHDAYS.filter(keep);
+  CAL_ANNIVERSARIES = CAL_ANNIVERSARIES.filter(keep);
+}
+
 function syncCollabToCalendar(collabId, name, udn, bdayISO, annivISO) {
   loadCalData();
 
@@ -5198,7 +5258,7 @@ function syncCollabToCalendar(collabId, name, udn, bdayISO, annivISO) {
       return list;
     }
     const md = dateISO.slice(5); // 'YYYY-MM-DD' -> 'MM-DD'
-    const entry = { id: idx >= 0 ? list[idx].id : uid(), collab_id: collabId, name, role: '', udn: udn||'', date: md };
+    const entry = { id: idx >= 0 ? list[idx].id : uid(), collab_id: collabId, name, role: '', udn: udn||'', date: md, full_date: dateISO };
     if (idx >= 0) list[idx] = entry; else list.push(entry);
     return list;
   }
@@ -5414,7 +5474,7 @@ async function confirmImport(kind) {
     const idx = targetList.findIndex(p => normalizeName(p.name) === key);
     if (idx >= 0) {
       // Keep the existing id, refresh the rest of the fields (date, role, udn may have changed)
-      targetList[idx] = { ...targetList[idx], role: row.role, udn: row.udn, date: row.date };
+      targetList[idx] = { ...targetList[idx], role: row.role, udn: row.udn, date: row.date, full_date: row.full_date || targetList[idx].full_date };
       updated++;
     } else {
       targetList.push(row);
@@ -5500,6 +5560,7 @@ function buildCalendarIndex(year) {
 
   function indexList(list, type) {
     list.forEach(person => {
+      if (type === 'aniversario' && !anniversaryEligible(person, year)) return;
       const eventDate = getEventOccurrence(person.date, year);
       const ek = dateKey(eventDate);
       if (!eventsByDate[ek]) eventsByDate[ek] = [];
@@ -5975,6 +6036,7 @@ function buildMassPlan(month, year, includeSent) {
   [['cumpleanos', CAL_BIRTHDAYS], ['aniversario', CAL_ANNIVERSARIES]].forEach(([type, list]) => {
     list.forEach(person => {
       if (parseInt(person.date.slice(0,2), 10) - 1 !== month) return;
+      if (type === 'aniversario' && !anniversaryEligible(person, year)) return;
       const ek = dateKey(getEventOccurrence(person.date, year));
       const skey = getShipStatusKey(person.id, type, ek);
       const sent = CAL_SHIP_STATUS[skey] === 'enviado';
@@ -6208,6 +6270,125 @@ async function runMassDelivery(register) {
     console.error(e);
     toast('Error: ' + (e.message || e) + (register ? ' — revisa el Historial por si quedó algo a medias' : ''), 't-red');
     renderMassDeliveryPreview();
+  }
+}
+
+// ─── ETIQUETAS 5 cm × 2 cm (cumpleaños / aniversarios del mes) ───────────────
+// Un PDF tamaño carta con etiquetas rectangulares de 5×2 cm (4 columnas × 12
+// filas = 48 por hoja). Cada etiqueta: nombre, UDN, evento y fecha del evento.
+// Incluye a todos los del mes (pendientes y ya enviados); quien cumple años y
+// aniversario el mismo mes genera 2 etiquetas.
+const LABEL_W = 5 * 72 / 2.54, LABEL_H = 2 * 72 / 2.54;   // 141.73 × 56.69 pt
+const LABEL_COLS = 4, LABEL_ROWS = 12, LABEL_GAP = 3;
+
+function openLabelsModal() {
+  loadCalData();
+  const now = new Date();
+  let m = now.getMonth(), y = now.getFullYear();
+  if (now.getDate() > 5) { m++; if (m > 11) { m = 0; y++; } }
+  document.getElementById('lb-month').innerHTML =
+    MONTH_NAMES_ES.map((n,i) => `<option value="${i}" ${i===m?'selected':''}>${n}</option>`).join('');
+  document.getElementById('lb-year').value = y;
+  renderLabelsPreview();
+  openModal('m-labels');
+}
+
+function _labelSel() {
+  return { month: parseInt(document.getElementById('lb-month').value, 10),
+           year: parseInt(document.getElementById('lb-year').value, 10) };
+}
+
+function _fmtLongDate(d) {
+  return `${d.getDate()} de ${MONTH_NAMES_ES[d.getMonth()].toLowerCase()} de ${d.getFullYear()}`;
+}
+
+function buildLabelEntries(month, year) {
+  const plan = buildMassPlan(month, year, true);          // todos, sin importar si ya se enviaron
+  const out = [];
+  const push = (e, udn) => out.push({
+    name: e.person.name, udn: udn || 'Sin UDN', type: e.type,
+    date: getEventOccurrence(e.person.date, year)
+  });
+  plan.groups.forEach(g => { g.cumpleanos.forEach(e => push(e, g.udn)); g.aniversario.forEach(e => push(e, g.udn)); });
+  plan.noUdn.forEach(e => push(e, ''));
+  const idx = u => { const i = UDN_LIST.indexOf(u); return i < 0 ? 999 : i; };
+  out.sort((a,b) => idx(a.udn) - idx(b.udn) || a.udn.localeCompare(b.udn, 'es') ||
+                    a.date - b.date || a.type.localeCompare(b.type) || a.name.localeCompare(b.name, 'es'));
+  return { entries: out, label: plan.label, noUdn: plan.noUdn };
+}
+
+function renderLabelsPreview() {
+  const { month, year } = _labelSel();
+  const box = document.getElementById('lb-preview');
+  const btn = document.getElementById('lb-btn');
+  if (isNaN(year) || year < 2000) { box.innerHTML = ''; btn.disabled = true; return; }
+  const { entries, label, noUdn } = buildLabelEntries(month, year);
+  if (!entries.length) {
+    box.innerHTML = `<div class="psel-empty">No hay cumpleaños ni aniversarios en ${label}.</div>`;
+    btn.disabled = true; return;
+  }
+  const nC = entries.filter(e => e.type === 'cumpleanos').length, nA = entries.length - nC;
+  const pages = Math.ceil(entries.length / (LABEL_COLS * LABEL_ROWS));
+  let html = `<div style="background:var(--bg3,#f3f4f6);border-radius:8px;padding:10px 12px;font-size:13px">
+    <strong>${entries.length}</strong> etiqueta(s) para ${label}: ${nC} de cumpleaños y ${nA} de aniversario laboral · ${pages} hoja(s) tamaño carta (48 etiquetas por hoja)</div>`;
+  if (noUdn.length) {
+    html += `<div style="margin-top:10px;padding:9px 12px;border-radius:8px;background:#fff4e5;color:#8a5200;font-size:12.5px">⚠️ ${noUdn.length} etiqueta(s) saldrán con "Sin UDN" (${[...new Set(noUdn.map(e => e.person.name))].join(', ')}). Asígnales UDN en Colaboradores si quieres que aparezca.</div>`;
+  }
+  box.innerHTML = html;
+  btn.disabled = false;
+}
+
+function _drawLabel(page, font, bold, x, yTop, e) {
+  const { rgb } = PDFLib, INK = rgb(0.12,0.145,0.17), ORANGE = rgb(0.76,0.27,0.08), GRAY = rgb(0.62,0.64,0.68);
+  page.drawRectangle({ x, y: 792 - yTop - LABEL_H, width: LABEL_W, height: LABEL_H, borderColor: GRAY, borderWidth: 0.5 });
+  const pad = 7, maxW = LABEL_W - pad * 2, left = x + pad;
+  const put = (txt, size, f, color, base) =>
+    page.drawText(_truncTo(f, _pdfSafe(f, txt, size), size, maxW), { x: left, y: 792 - (yTop + base), size, font: f, color });
+
+  const name = _pdfSafe(bold, e.name, 9);
+  let nameSize = 9;
+  while (nameSize > 6.5 && bold.widthOfTextAtSize(name, nameSize) > maxW) nameSize -= 0.5;
+  put(name, nameSize, bold, INK, 15);
+  put(e.udn, 7.5, font, INK, 27);
+  put(e.type === 'cumpleanos' ? 'Cumpleaños' : 'Aniversario laboral', 7.5, bold, ORANGE, 38);
+  put(_fmtLongDate(e.date), 7.5, font, INK, 49);
+}
+
+async function generateLabelsPdf(entries) {
+  const { PDFDocument, StandardFonts } = PDFLib;
+  const doc = await PDFDocument.create();
+  const font = await doc.embedFont(StandardFonts.Helvetica);
+  const bold = await doc.embedFont(StandardFonts.HelveticaBold);
+  const perPage = LABEL_COLS * LABEL_ROWS;
+  const gridW = LABEL_COLS * LABEL_W + (LABEL_COLS - 1) * LABEL_GAP;
+  const gridH = LABEL_ROWS * LABEL_H + (LABEL_ROWS - 1) * LABEL_GAP;
+  const left = (612 - gridW) / 2, top = (792 - gridH) / 2;
+  let page = null;
+  entries.forEach((e, i) => {
+    const k = i % perPage;
+    if (k === 0) page = doc.addPage([612, 792]);
+    const col = k % LABEL_COLS, row = Math.floor(k / LABEL_COLS);
+    _drawLabel(page, font, bold, left + col * (LABEL_W + LABEL_GAP), top + row * (LABEL_H + LABEL_GAP), e);
+  });
+  return doc.save({ useObjectStreams: false });
+}
+
+async function downloadLabels() {
+  const { month, year } = _labelSel();
+  const { entries, label } = buildLabelEntries(month, year);
+  if (!entries.length) { toast('No hay etiquetas para ese mes', 't-red'); return; }
+  const btn = document.getElementById('lb-btn');
+  btn.disabled = true;
+  try {
+    await loadLibOnce('https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js', 'PDFLib');
+    const bytes = await generateLabelsPdf(entries);
+    downloadBlob(new Blob([bytes], { type: 'application/pdf' }), `Etiquetas_obsequios_${slugFile(label)}.pdf`);
+    closeModal('m-labels');
+    toast(`${entries.length} etiqueta(s) generada(s)`, 't-green');
+  } catch (e) {
+    console.error(e);
+    toast('Error: ' + (e.message || e), 't-red');
+    btn.disabled = false;
   }
 }
 
