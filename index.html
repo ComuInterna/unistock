@@ -1359,6 +1359,10 @@ tbody tr[draggable] { cursor:grab; } tbody tr[draggable]:active { cursor:grabbin
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
               Descargar Etiquetas
             </button>
+            <button class="btn btn-secondary" onclick="openCalOrphansModal()" title="Personas que aparecen en el calendario pero ya no existen en Colaboradores">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+              Limpiar bajas <span id="cal-orph-count" style="display:none;margin-left:4px;background:#c0392b;color:#fff;border-radius:10px;padding:0 7px;font-size:11px;font-weight:700"></span>
+            </button>
           </div>
         </div>
 
@@ -2051,6 +2055,27 @@ tbody tr[draggable] { cursor:grab; } tbody tr[draggable]:active { cursor:grabbin
     <div class="modal-ft">
       <button class="btn btn-secondary" onclick="closeModal('m-labels')">Cancelar</button>
       <button class="btn btn-primary" id="lb-btn" onclick="downloadLabels()">⬇ Descargar Etiquetas</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Limpiar bajas del calendario -->
+<div class="backdrop" id="m-cal-orphans">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-hd">
+      <div><div class="modal-title">Limpiar bajas del calendario</div><div class="modal-sub">Personas que aparecen en el calendario pero ya no existen en Colaboradores (quedaron de una importación de Excel). El historial de entregas no se toca.</div></div>
+      <button class="modal-close" onclick="closeModal('m-cal-orphans')"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="form-grid">
+      <div class="fg full">
+        <div style="display:flex;gap:8px;margin-bottom:8px"><button class="btn btn-secondary btn-sm" onclick="selectAllOrphans(true)">Seleccionar todas</button><button class="btn btn-secondary btn-sm" onclick="selectAllOrphans(false)">Quitar selección</button></div>
+        <div id="orph-list" style="max-height:340px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--r)"></div>
+        <div id="orph-count" style="font-size:12px;color:var(--text3);margin-top:6px"></div>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-secondary" onclick="closeModal('m-cal-orphans')">Cerrar</button>
+      <button class="btn btn-red" id="orph-btn" onclick="removeSelectedOrphans()">Quitar del calendario</button>
     </div>
   </div>
 </div>
@@ -5586,6 +5611,7 @@ function getShipStatusKey(personId, type, eventDateKey) {
 function renderCalendario() {
   loadCalData();
   dedupeCalData();
+  updateOrphanBadge();
   updateNotifPermButton();
   document.getElementById('cal-month-label').textContent = MONTH_NAMES_ES[_calCurrentMonth] + ' ' + _calCurrentYear;
 
@@ -6312,8 +6338,9 @@ function buildLabelEntries(month, year) {
   plan.groups.forEach(g => { g.cumpleanos.forEach(e => push(e, g.udn)); g.aniversario.forEach(e => push(e, g.udn)); });
   plan.noUdn.forEach(e => push(e, ''));
   const idx = u => { const i = UDN_LIST.indexOf(u); return i < 0 ? 999 : i; };
-  out.sort((a,b) => idx(a.udn) - idx(b.udn) || a.udn.localeCompare(b.udn, 'es') ||
-                    a.date - b.date || a.type.localeCompare(b.type) || a.name.localeCompare(b.name, 'es'));
+  const typeOrder = t => t === 'cumpleanos' ? 0 : 1;      // cumpleaños primero, luego aniversarios
+  out.sort((a,b) => typeOrder(a.type) - typeOrder(b.type) || idx(a.udn) - idx(b.udn) ||
+                    a.udn.localeCompare(b.udn, 'es') || a.date - b.date || a.name.localeCompare(b.name, 'es'));
   return { entries: out, label: plan.label, noUdn: plan.noUdn };
 }
 
@@ -6328,9 +6355,11 @@ function renderLabelsPreview() {
     btn.disabled = true; return;
   }
   const nC = entries.filter(e => e.type === 'cumpleanos').length, nA = entries.length - nC;
-  const pages = Math.ceil(entries.length / (LABEL_COLS * LABEL_ROWS));
+  const perPage = LABEL_COLS * LABEL_ROWS;
+  const pC = Math.ceil(nC / perPage), pA = Math.ceil(nA / perPage);
   let html = `<div style="background:var(--bg3,#f3f4f6);border-radius:8px;padding:10px 12px;font-size:13px">
-    <strong>${entries.length}</strong> etiqueta(s) para ${label}: ${nC} de cumpleaños y ${nA} de aniversario laboral · ${pages} hoja(s) tamaño carta (48 etiquetas por hoja)</div>`;
+    <strong>${entries.length}</strong> etiqueta(s) para ${label}, separadas en hojas distintas (48 por hoja):<br>
+    🎂 Cumpleaños: <strong>${nC}</strong> · ${pC} hoja(s)<br>🏆 Aniversario laboral: <strong>${nA}</strong> · ${pA} hoja(s)</div>`;
   if (noUdn.length) {
     html += `<div style="margin-top:10px;padding:9px 12px;border-radius:8px;background:#fff4e5;color:#8a5200;font-size:12.5px">⚠️ ${noUdn.length} etiqueta(s) saldrán con "Sin UDN" (${[...new Set(noUdn.map(e => e.person.name))].join(', ')}). Asígnales UDN en Colaboradores si quieres que aparezca.</div>`;
   }
@@ -6354,7 +6383,7 @@ function _drawLabel(page, font, bold, x, yTop, e) {
   put(_fmtLongDate(e.date), 7.5, font, INK, 49);
 }
 
-async function generateLabelsPdf(entries) {
+async function generateLabelsPdf(entries, monthLabel) {
   const { PDFDocument, StandardFonts } = PDFLib;
   const doc = await PDFDocument.create();
   const font = await doc.embedFont(StandardFonts.Helvetica);
@@ -6363,12 +6392,26 @@ async function generateLabelsPdf(entries) {
   const gridW = LABEL_COLS * LABEL_W + (LABEL_COLS - 1) * LABEL_GAP;
   const gridH = LABEL_ROWS * LABEL_H + (LABEL_ROWS - 1) * LABEL_GAP;
   const left = (612 - gridW) / 2, top = (792 - gridH) / 2;
-  let page = null;
-  entries.forEach((e, i) => {
-    const k = i % perPage;
-    if (k === 0) page = doc.addPage([612, 792]);
-    const col = k % LABEL_COLS, row = Math.floor(k / LABEL_COLS);
-    _drawLabel(page, font, bold, left + col * (LABEL_W + LABEL_GAP), top + row * (LABEL_H + LABEL_GAP), e);
+  const { rgb } = PDFLib, GRAY = rgb(0.45, 0.47, 0.5);
+  // Cada tipo de evento arranca en hoja nueva, para imprimir/recortar por separado
+  const sections = [
+    { title: 'CUMPLEAÑOS',          items: entries.filter(e => e.type === 'cumpleanos') },
+    { title: 'ANIVERSARIO LABORAL', items: entries.filter(e => e.type !== 'cumpleanos') }
+  ];
+  sections.forEach(sec => {
+    const total = Math.ceil(sec.items.length / perPage);
+    let page = null;
+    sec.items.forEach((e, i) => {
+      const k = i % perPage;
+      if (k === 0) {
+        page = doc.addPage([612, 792]);
+        // Leyenda en el margen superior (fuera de las etiquetas)
+        const cap = _pdfSafe(bold, `${sec.title} · ${monthLabel || ''} · hoja ${Math.floor(i / perPage) + 1} de ${total}`, 8);
+        page.drawText(cap, { x: left, y: 792 - Math.max(14, top - 11), size: 8, font: bold, color: GRAY });
+      }
+      const col = k % LABEL_COLS, row = Math.floor(k / LABEL_COLS);
+      _drawLabel(page, font, bold, left + col * (LABEL_W + LABEL_GAP), top + row * (LABEL_H + LABEL_GAP), e);
+    });
   });
   return doc.save({ useObjectStreams: false });
 }
@@ -6381,7 +6424,7 @@ async function downloadLabels() {
   btn.disabled = true;
   try {
     await loadLibOnce('https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js', 'PDFLib');
-    const bytes = await generateLabelsPdf(entries);
+    const bytes = await generateLabelsPdf(entries, label);
     downloadBlob(new Blob([bytes], { type: 'application/pdf' }), `Etiquetas_obsequios_${slugFile(label)}.pdf`);
     closeModal('m-labels');
     toast(`${entries.length} etiqueta(s) generada(s)`, 't-green');
@@ -6390,6 +6433,82 @@ async function downloadLabels() {
     toast('Error: ' + (e.message || e), 't-red');
     btn.disabled = false;
   }
+}
+
+// ─── LIMPIAR BAJAS DEL CALENDARIO ────────────────────────────────────────────
+// Entradas sueltas (importadas por Excel, sin colaborador vinculado) que ya no
+// coinciden con nadie en Colaboradores: típicamente bajas eliminadas antes de
+// que la baja limpiara el calendario. Quitarlas NO toca movimientos ni el
+// estatus de envíos.
+let _orphSel = new Set();
+
+function getOrphanCalPeople() {
+  const names = new Set(COLLS.map(c => normalizeName(c.name)));
+  const map = new Map();
+  const add = (e, kind) => {
+    if (e.collab_id) return;
+    const k = normalizeName(e.name);
+    if (names.has(k)) return;
+    if (!map.has(k)) map.set(k, { key: k, name: e.name, udn: e.udn || '', events: [] });
+    const o = map.get(k);
+    if (!o.udn && e.udn) o.udn = e.udn;
+    o.events.push({ kind, date: e.date });
+  };
+  CAL_BIRTHDAYS.forEach(e => add(e, 'cumpleanos'));
+  CAL_ANNIVERSARIES.forEach(e => add(e, 'aniversario'));
+  return [...map.values()].sort((a, b) => a.name.localeCompare(b.name, 'es'));
+}
+
+function updateOrphanBadge() {
+  const el = document.getElementById('cal-orph-count');
+  if (!el) return;
+  const n = COLLS.length ? getOrphanCalPeople().length : 0;
+  el.textContent = n; el.style.display = n ? 'inline-block' : 'none';
+}
+
+function openCalOrphansModal() {
+  loadCalData();
+  _orphSel = new Set();
+  renderOrphanList();
+  openModal('m-cal-orphans');
+}
+
+function renderOrphanList() {
+  const list = getOrphanCalPeople();
+  const el = document.getElementById('orph-list');
+  el.innerHTML = list.length ? list.map(o => {
+    const ev = o.events.map(e => (e.kind === 'cumpleanos' ? '🎂 ' : '🏆 ') + e.date.slice(3) + '/' + e.date.slice(0, 2)).join(' · ');
+    return `<label style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--border);cursor:pointer;font-size:13px">
+      <input type="checkbox" ${_orphSel.has(o.key) ? 'checked' : ''} onchange="toggleOrphan('${o.key.replace(/'/g, "\\'")}')">
+      <span style="flex:1"><strong>${o.name}</strong>${o.udn ? ' · ' + o.udn : ''}<br><span style="color:var(--text3);font-size:12px">${ev}</span></span>
+    </label>`;
+  }).join('') : '<div class="psel-empty">No hay personas sueltas: todo el calendario coincide con Colaboradores 🎉</div>';
+  document.getElementById('orph-count').textContent = list.length ? `${_orphSel.size} de ${list.length} seleccionada(s)` : '';
+  document.getElementById('orph-btn').disabled = !_orphSel.size;
+}
+
+function toggleOrphan(key) {
+  if (_orphSel.has(key)) _orphSel.delete(key); else _orphSel.add(key);
+  renderOrphanList();
+}
+function selectAllOrphans(on) {
+  _orphSel = on ? new Set(getOrphanCalPeople().map(o => o.key)) : new Set();
+  renderOrphanList();
+}
+
+function removeSelectedOrphans() {
+  if (!_orphSel.size) return;
+  if (!confirm(`¿Quitar ${_orphSel.size} persona(s) del calendario? Su historial de entregas se conserva.`)) return;
+  const keep = e => e.collab_id || !_orphSel.has(normalizeName(e.name));
+  CAL_BIRTHDAYS     = CAL_BIRTHDAYS.filter(keep);
+  CAL_ANNIVERSARIES = CAL_ANNIVERSARIES.filter(keep);
+  saveCalBirthdays();
+  saveCalAnniversaries();
+  const n = _orphSel.size;
+  _orphSel = new Set();
+  closeModal('m-cal-orphans');
+  toast(`${n} persona(s) quitada(s) del calendario`, 't-green');
+  renderCalendario();
 }
 
 // ─── NOTIFICACIONES DE ESCRITORIO (Lunes de Envío) ────────────────────────────
