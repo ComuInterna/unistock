@@ -5800,7 +5800,11 @@ function renderDayDetail(ck, eventsByDate, shipByDate) {
       const skey = getShipStatusKey(ev.person.id, ev.type, ev.eventDateKey);
       const status = CAL_SHIP_STATUS[skey] || 'pendiente';
       const isBday = ev.type === 'cumpleanos';
-      const product = isBday ? '🎧 Audífonos' : '🗂️ Organizador';
+      // Artículo configurado en "Artículos por defecto" (o el sugerido por tipo si no hay)
+      const gp = resolveGiftProduct(ev.type);
+      const product = gp
+        ? `${isBday ? '🎧' : '🗂️'} ${productLabel(gp)}`
+        : `<span style="color:var(--amber)">⚠️ Sin artículo asignado</span>`;
       const [ey,em,edd] = ev.eventDateKey.split('-').map(Number);
       const eventDateLabel = new Date(ey,em-1,edd).toLocaleDateString('es-MX',{day:'numeric',month:'short'});
       html += `<tr>
@@ -5871,6 +5875,7 @@ function saveGiftDefaultsModal() {
   saveGiftDefaultsToStorage();
   closeModal('m-gift-defaults');
   toast('Artículos por defecto actualizados', 't-green');
+  try { renderCalendario(); } catch(e) {}      // refresca la columna Producto del detalle
 }
 
 function toggleShipStatus(skey) {
